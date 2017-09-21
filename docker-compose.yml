@@ -1,0 +1,50 @@
+# Defines the development configuration for docker-compose.
+version: '2'
+
+services:
+  #
+  # frontend:
+  #   build: ./frontend
+  #   # restart: always
+  #   expose:
+  #     # Expose webpack for reverse proxy
+  #      - "3000"
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     # mount local working directory for development
+  #     - ./frontend:/usr/src/app
+  #   working_dir: /usr/src/app
+  #   command: ["bash", "-c", "yarn install && webpack-dev-server"]
+
+  server:
+    env_file: .env
+    restart: always
+    build: ./server
+    user: root
+    expose:
+    - "8000"
+    links:
+     - database:database
+    environment:
+      - FLASK_DEBUG=1
+      - FLASK_APP=dev.py
+      - SESSION_COOKIE_NAME=localhost
+    volumes:
+      # Mount server directory to local for development
+      - ./server:/usr/src/local
+    working_dir: /usr/src/local
+    # Run development server with flask
+    # command: ["/usr/local/bin/flask", "run", "--port=8000", "--host=0.0.0.0"]
+
+  database:
+    image: postgres:9.6.3
+    restart: always
+    env_file: .env
+    expose:
+    - "5432"
+    volumes:
+      - datavolume:/var/lib/postgresql/data
+
+volumes:
+  datavolume:
