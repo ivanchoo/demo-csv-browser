@@ -1,17 +1,12 @@
 import click
-import csv
 import random
 import json
 from datetime import datetime, timedelta
+from app.utils import csv_writer
 
 OBJECT_TYPES = ('Order', 'Product', 'Invoice')
 PRODUCT_TYPES = ('Laptop', 'Camera', 'Phone', 'Computer', 'Watch', 'Tablet')
 STATUS_TYPES = ('paid', 'unpaid')
-
-csv.register_dialect(
-    'escaped', escapechar='\\',
-    doublequote=False, quoting=csv.QUOTE_NONNUMERIC
-)
 
 
 @click.group(chain=True)
@@ -29,17 +24,12 @@ def cli(ctx):
 def data(f, rows):
     """Create random data and output as csv to the given `file` path."""
     assert rows, 'Expects non zero rows'
-    csv_kwargs = {
-        'dialect': 'escaped'
-    }
     if not f:
-        writer = csv.writer(click.get_text_stream('stdout'), **csv_kwargs)
+        writer = csv_writer(click.get_text_stream('stdout'))
         _write_csv(writer, rows)
     else:
         with f.open() as fp:
-            writer = csv.writer(fp, **csv_kwargs)
-            # click.echo(dir(fp))
-            _write_csv(writer, rows)
+            _write_csv(csv_writer(fp), rows)
 
 
 def _write_csv(writer, rows):
