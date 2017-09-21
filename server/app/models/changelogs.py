@@ -1,7 +1,7 @@
 import pytz
-from .core import db, Model, now, metadata
+from .core import db, Model, now, metadata, from_datetime
 from sqlalchemy import (
-    Column, Integer, String, DateTime, Table, TIMESTAMP, event
+    Column, Integer, String, DateTime, Table, TIMESTAMP, event, func
 )
 from flask_sqlalchemy import SignallingSession
 from datetime import datetime
@@ -42,6 +42,26 @@ class ChangeLog(Model):
     def __repr__(self):
         return '<ChangeLogMeta({}, tablename="{}")>'.\
             format(self.changelog_id, self.tablename)
+
+    def to_dict(self):
+        return {
+            'changelog_id': self.changelog_id,
+            'filename': self.filename,
+            'created_at': from_datetime(self.created_at)
+        }
+
+    def to_details(self):
+        t = self.datatable()
+        dtc = func.to_char(t.c.timestamp, 'YYYY-MM-DD')
+        q = db.session.query(
+                dtc,
+                func.count(t.c.object_id)
+            )
+        q = q.group_by(dtc).\
+            order_by(dtc.desc())
+        details = self.to_dict()
+        details['series'] = q.all()
+        return details
 
     def datatable(self):
         assert self.tablename, 'Expects ChangeLog to have a `tablename`'

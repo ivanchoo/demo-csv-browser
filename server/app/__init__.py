@@ -10,8 +10,10 @@ def create_app(config=Config):
     from .models import db
     db.init_app(app)
 
+    from .blueprints.api import blueprint as api
     from .blueprints.views import blueprint as views
     app.register_blueprint(views)
+    app.register_blueprint(api, url_prefix='/api')
 
     if app.debug and not app.testing:
         with app.app_context():
