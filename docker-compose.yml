@@ -22,20 +22,20 @@ services:
     restart: always
     build: ./server
     user: root
-    expose:
-    - "8000"
+    ports:
+      - "8000:8000"
     links:
      - database:database
     environment:
       - FLASK_DEBUG=1
-      - FLASK_APP=dev.py
+      - FLASK_APP=run.py
       - SESSION_COOKIE_NAME=localhost
     volumes:
       # Mount server directory to local for development
       - ./server:/usr/src/local
     working_dir: /usr/src/local
     # Run development server with flask
-    # command: ["/usr/local/bin/flask", "run", "--port=8000", "--host=0.0.0.0"]
+    command: ["/usr/local/bin/flask", "run", "--port=8000", "--host=0.0.0.0"]
 
   database:
     image: postgres:9.6.3
