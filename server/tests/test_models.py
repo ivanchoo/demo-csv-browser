@@ -22,6 +22,8 @@ class ModelsTest(DBTest):
             os.path.dirname(os.path.realpath(__file__)),
             '..', 'data', 'x10.csv'
         )
+        assert os.path.exists(csvfile)
+        assert os.path.isfile(csvfile)
         with open(csvfile, 'r') as fp:
             reader = csv_reader(fp)
             cl.populate_datatable(reader, session=db.session)

@@ -83,6 +83,8 @@ def _populate_datatable(rows, table, session):
     ins = table.insert()
     tz = pytz.utc
     for row in rows:
+        if not row:
+            continue
         item = {
             'object_id': row[0],
             'timestamp': datetime.fromtimestamp(int(row[1]), tz),
