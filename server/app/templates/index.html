@@ -1,0 +1,12 @@
+{% extends "_base.html" %}
+{% set title='Application' %}
+
+{% block head %}
+{#
+<script src="{{ url_for('views.lib', filename='common.bundle.js') }}" type="text/javascript"></script>
+#}
+{% endblock %}
+
+{% block body %}
+<script src="{{ url_for('views.lib', filename='index.bundle.js') }}" type="text/javascript"></script>
+{% endblock %}

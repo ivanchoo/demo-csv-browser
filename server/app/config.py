@@ -21,3 +21,6 @@ class Config(object):
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = bool(os.environ.get('SQLALCHEMY_ECHO'))
+
+    # Development
+    DEV_FRONTEND_URI = os.environ.get('DEV_FRONTEND_URI')

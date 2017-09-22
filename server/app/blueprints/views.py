@@ -1,8 +1,26 @@
-from flask import Blueprint
+import requests
+from flask import (
+    Blueprint, render_template, current_app, abort, Response,
+    stream_with_context
+)
 
 blueprint = Blueprint('views', __name__)
 
 
 @blueprint.route('/')
 def index():
-    return 'It works!'
+    return render_template('index.html')
+
+
+@blueprint.route('/lib/<path:filename>')
+def lib(filename):
+    """Proxy to frontend webpack server, else 404 in production."""
+    if not current_app.debug:
+        abort(404)
+    url = '{endpoint}/lib/{filename}'.format(
+        endpoint=current_app.config.get('DEV_FRONTEND_URI'), filename=filename)
+    req = requests.get(url, stream=True)
+    return Response(
+        stream_with_context(req.iter_content(chunk_size=2048)),
+        content_type=req.headers['content-type']
+    )
