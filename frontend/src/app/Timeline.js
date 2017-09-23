@@ -1,9 +1,16 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { withContentRect } from "react-measure";
-import * as d3 from "d3";
+import { select, event } from "d3-selection";
+import { scaleTime, scaleLinear } from "d3-scale";
+import { axisBottom, axisLeft } from "d3-axis";
+import { brushX } from "d3-brush";
+import { zoom, zoomIdentity } from "d3-zoom";
+import { area, curveMonotoneX } from "d3-shape";
+import { extent, max } from "d3-array";
+import { parseDate } from "./utils";
 
-const parseDate = d3.timeParse("%Y-%m-%d");
+let _counter = 1;
 
 class Timeline extends React.Component {
   static propTypes = {
@@ -11,169 +18,167 @@ class Timeline extends React.Component {
     measure: PropTypes.func,
     contentRect: PropTypes.object
   };
-  draw() {
-    var svg = d3.select("#timeline-svg"),
-      margin = { top: 20, right: 20, bottom: 110, left: 40 },
-      margin2 = { top: 430, right: 20, bottom: 30, left: 40 },
-      width = +svg.attr("width") - margin.left - margin.right,
-      height = +svg.attr("height") - margin.top - margin.bottom,
-      height2 = +svg.attr("height") - margin2.top - margin2.bottom;
-    svg.selectAll("*").remove();
-    
-    var x = d3.scaleTime().range([0, width]),
-      x2 = d3.scaleTime().range([0, width]),
-      y = d3.scaleLinear().range([height, 0]),
-      y2 = d3.scaleLinear().range([height2, 0]);
+  svgRef = ref => (this._svg = select(ref));
+  brushed = () => {
+    if (event.sourceEvent && event.sourceEvent.type === "zoom") return;
+    const s = event.selection || this._x2.range();
+    this._x.domain(s.map(this._x2.invert, this._x2));
+    this._focus.select(".area").attr("d", this._area);
+    this._focus.select(".axis--x").call(this._xAxis);
+    const width = +this._svg.attr("width");
+    this._svg
+      .select(".zoom")
+      .call(
+        this._zoom.transform,
+        zoomIdentity.scale(width / (s[1] - s[0])).translate(-s[0], 0)
+      );
+  };
+  zoomed = () => {
+    if (event.sourceEvent && event.sourceEvent.type === "brush") return;
+    var t = event.transform;
+    this._x.domain(t.rescaleX(this._x2).domain());
+    this._focus.select(".area").attr("d", this._area);
+    this._focus.select(".axis--x").call(this._xAxis);
+    this._context
+      .select(".brush")
+      .call(this._brush.move, this._x.range().map(t.invertX, t));
+  };
+  constructor(props) {
+    super(props);
+    this.state = { uid: `timeline-${_counter++}` };
+  }
+  hasBoundsChanged() {
+    if (!this._svg) return false;
+    const { contentRect } = this.props;
+    const { width, height } = contentRect.bounds;
+    return (
+      width !== +this._svg.attr("width") || height !== +this._svg.attr("height")
+    );
+  }
+  drawChart(forceRefresh) {
+    if (!this._svg) return;
+    if (!forceRefresh) {
+      forceRefresh = this.hasBoundsChanged();
+    }
+    if (!forceRefresh) {
+      return;
+    }
+    this._svg.selectAll("*").remove();
+    const { bounds } = this.props.contentRect;
+    if (!bounds.width || !bounds.height) {
+      return;
+    }
+    // Invalidate measurements and remove previous content
+    const margin = { top: 20, right: 20, bottom: 110, left: 40 },
+      margin2 = { top: 230, right: 20, bottom: 30, left: 40 },
+      width = bounds.width - margin.left - margin.right,
+      height = bounds.height - margin.top - margin.bottom,
+      height2 = bounds.height - margin2.top - margin2.bottom;
 
-    var xAxis = d3.axisBottom(x),
-      xAxis2 = d3.axisBottom(x2),
-      yAxis = d3.axisLeft(y);
-
-    var brush = d3
-      .brushX()
+    this._svg.attr("width", bounds.width).attr("height", bounds.height);
+    // Recalculate all scales
+    this._x = scaleTime().range([0, width]);
+    this._x2 = scaleTime().range([0, width]);
+    this._y = scaleLinear().range([height, 0]);
+    this._y2 = scaleLinear().range([height2, 0]);
+    this._xAxis = axisBottom(this._x);
+    this._xAxis2 = axisBottom(this._x2);
+    this._yAxis = axisLeft(this._y);
+    this._brush = brushX()
       .extent([[0, 0], [width, height2]])
-      .on("brush end", brushed);
-
-    var zoom = d3
-      .zoom()
+      .on("brush end", this.brushed);
+    this._zoom = zoom()
       .scaleExtent([1, Infinity])
       .translateExtent([[0, 0], [width, height]])
       .extent([[0, 0], [width, height]])
-      .on("zoom", zoomed);
-
-    var area = d3
-      .area()
-      .curve(d3.curveMonotoneX)
-      .x(function(d) {
-        return x(d.date);
-      })
+      .on("zoom", this.zoomed);
+    this._area = area()
+      .curve(curveMonotoneX)
+      .x(d => this._x(d.date))
       .y0(height)
-      .y1(function(d) {
-        return y(d.value);
-      });
-
-    var area2 = d3
-      .area()
-      .curve(d3.curveMonotoneX)
-      .x(function(d) {
-        return x2(d.date);
-      })
+      .y1(d => this._y(d.value));
+    this._area2 = area()
+      .curve(curveMonotoneX)
+      .x(d => this._x2(d.date))
       .y0(height2)
-      .y1(function(d) {
-        return y2(d.value);
-      });
-
-    svg
+      .y1(d => this._y2(d.value));
+    this._svg
       .append("defs")
       .append("clipPath")
       .attr("id", "clip")
       .append("rect")
       .attr("width", width)
       .attr("height", height);
-
-    var focus = svg
+    this._focus = this._svg
       .append("g")
       .attr("class", "focus")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    var context = svg
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    this._context = this._svg
       .append("g")
       .attr("class", "context")
-      .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
-
-    x.domain(
-      d3.extent(data, function(d) {
-        return d.date;
-      })
-    );
-    y.domain([
-      0,
-      d3.max(data, function(d) {
-        return d.value;
-      })
-    ]);
-    x2.domain(x.domain());
-    y2.domain(y.domain());
-
-    focus
+      .attr("transform", `translate(${margin2.left},${margin2.top})`);
+    this._x.domain(extent(data, d => d.date));
+    this._y.domain([0, max(data, d => d.value)]);
+    this._x2.domain(this._x.domain());
+    this._y2.domain(this._y.domain());
+    // Draw the chart in focus area (top chart)
+    this._focus
       .append("path")
       .datum(data)
       .attr("class", "area")
-      .attr("d", area);
-
-    focus
+      .attr("style", "fill: steelblue;clip-path: url(#clip);")
+      .attr("d", this._area);
+    this._focus
       .append("g")
       .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
-
-    focus
+      .attr("transform", `translate(0,${height})`)
+      .call(this._xAxis);
+    this._focus
       .append("g")
       .attr("class", "axis axis--y")
-      .call(yAxis);
-
-    context
+      .call(this._yAxis);
+    // Draw the chart in context (bottom chart)
+    this._context
       .append("path")
       .datum(data)
       .attr("class", "area")
-      .attr("d", area2);
-
-    context
+      .attr("style", "fill: steelblue;clip-path: url(#clip);")
+      .attr("d", this._area2);
+    this._context
       .append("g")
       .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + height2 + ")")
-      .call(xAxis2);
-
-    context
+      .attr("transform", `translate(0,${height2})`)
+      .call(this._xAxis2);
+    this._context
       .append("g")
       .attr("class", "brush")
-      .call(brush)
-      .call(brush.move, x.range());
-
-    svg
+      .call(this._brush)
+      .call(this._brush.move, this._x.range());
+    this._svg
       .append("rect")
       .attr("class", "zoom")
+      .attr("style", "cursor: move;fill: none;pointer-events: all;")
       .attr("width", width)
       .attr("height", height)
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-      .call(zoom);
-
-    function brushed() {
-      if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
-      var s = d3.event.selection || x2.range();
-      x.domain(s.map(x2.invert, x2));
-      focus.select(".area").attr("d", area);
-      focus.select(".axis--x").call(xAxis);
-      svg
-        .select(".zoom")
-        .call(
-          zoom.transform,
-          d3.zoomIdentity.scale(width / (s[1] - s[0])).translate(-s[0], 0)
-        );
-    }
-
-    function zoomed() {
-      if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
-      var t = d3.event.transform;
-      x.domain(t.rescaleX(x2).domain());
-      focus.select(".area").attr("d", area);
-      focus.select(".axis--x").call(xAxis);
-      context.select(".brush").call(brush.move, x.range().map(t.invertX, t));
-    }
+      .attr("transform", `translate(${margin.left},${margin.top})`)
+      .call(this._zoom);
   }
   componentDidMount() {
-    this.draw();
+    this.drawChart();
   }
   componentDidUpdate() {
-    this.draw();
+    this.drawChart();
   }
   render() {
     // eslint-disable-next-line
     const { measureRef, measure, contentRect, ...restProps } = this.props;
+    const { uid } = this.state;
     const { width, height } = contentRect.bounds;
+    const hasBounds = width && height;
+    let layer = hasBounds ? <svg ref={this.svgRef} id={uid} /> : null;
     return (
       <div ref={measureRef} {...restProps}>
-        <svg id="timeline-svg" width={width} height={height} />
+        {layer}
       </div>
     );
   }
