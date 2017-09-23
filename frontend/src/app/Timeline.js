@@ -56,6 +56,7 @@ class Timeline extends React.Component {
     );
   }
   drawChart(forceRefresh) {
+    // return;
     if (!this._svg) return;
     if (!forceRefresh) {
       forceRefresh = this.hasBoundsChanged();
