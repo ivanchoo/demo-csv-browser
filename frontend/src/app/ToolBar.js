@@ -1,11 +1,14 @@
 import React from "react";
+import { inject, observer } from "mobx-react";
 
+@inject(["store"])
+@observer
 export default class ToolBar extends React.Component {
   render() {
-    // eslint-disable-next-line
-    const { className = "", ...restProps } = this.props;
+    const { className = "", store, ...restProps } = this.props;
+    console.log(store.changeLogs.length)
     return (
-      <div className={`container-fluid bg-light ${className}`}>
+      <div {...restProps} className={`container-fluid bg-light ${className}`}>
         <form className="row py-2">
           <div className="col-2 border border-top-0 border-left-0 border-bottom-0">
             <label

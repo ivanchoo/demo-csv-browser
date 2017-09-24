@@ -4,7 +4,6 @@ import Details from "./Details";
 
 export default class Results extends React.Component {
   render() {
-    // eslint-disable-next-line
     const { className = "", ...restProps } = this.props;
     return (
       <div {...restProps} className={`d-flex ${className}`}>

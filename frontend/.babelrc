@@ -21,7 +21,8 @@
   ],
   "plugins": [
     "react-hot-loader/babel",
-    ["transform-class-properties", { "spec": true }],
+    "transform-decorators-legacy",
+    ["transform-class-properties"],
     [
       "transform-object-rest-spread",
       {

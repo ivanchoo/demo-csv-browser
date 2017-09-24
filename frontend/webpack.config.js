@@ -24,6 +24,7 @@ module.exports = {
   entry: {
     index: entrypoint([
       'babel-polyfill',
+      'isomorphic-fetch',
       'bootstrap-loader',
       r(SRC_DIR, 'index.js'),
     ]),

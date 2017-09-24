@@ -2,7 +2,6 @@ import React from "react";
 
 export default class Filters extends React.Component {
   render() {
-    // eslint-disable-next-line
     const { className = "", ...restProps } = this.props;
     return (
       <div {...restProps} className={`${className} d-flex flex-column bg-light`}>

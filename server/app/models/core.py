@@ -11,7 +11,7 @@ now = datetime.utcnow
 
 
 def from_datetime(dt):
-    return dt.isoformat()
+    return dt.strftime('%Y-%m-%dT%H:%M:%S')
 
 
 def to_datetime(iso):

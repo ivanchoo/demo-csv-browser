@@ -38,9 +38,12 @@
   "dependencies": {
     "bootstrap-loader": "^2.2.0",
     "d3": "^4.10.2",
+    "invariant": "^2.2.2",
+    "isomorphic-fetch": "^2.2.1",
     "jquery": "^3.2.1",
     "mobx": "^3.3.0",
     "mobx-react": "^4.3.2",
+    "moment": "^2.18.1",
     "popper.js": "^1.12.5",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",

@@ -2,11 +2,19 @@ import React from "react";
 import ToolBar from "./ToolBar";
 import Timeline from "./Timeline";
 import Results from "./Results";
+import { inject } from "mobx-react";
 
 const PORTAL_MIN_WIDTH = 768; // small devices, landscape
 const TIMELINE_HEIGHT = 280;
 
+@inject(["store"])
 class App extends React.Component {
+  componentDidMount() {
+    const { store } = this.props;
+    if (store.status != "success") {
+      store.fetch();
+    }
+  }
   render() {
     return (
       <div className="d-flex flex-column" style={styles.portal}>
