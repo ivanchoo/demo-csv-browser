@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, request
-from ..models import ChangeLog
+from flask import Blueprint, jsonify
+from ..models import ChangeLog, db
+from sqlalchemy import func
 
 blueprint = Blueprint('api', __name__)
 
@@ -19,17 +20,19 @@ def changelog_upload():
     raise NotImplementedError()
 
 
-@blueprint.route('/changelog/<int:changelog_id>')
+@blueprint.route('/changelog/<int:changelog_id>/stats')
 def changelog(changelog_id):
-    """Returns information of a given `changelog_id`:
-
-    - No query parameters: Returns the changelog's details
-    - With GET: Returns the changelog rows base on the given filters
-    """
+    """Returns a list of [('YYYY-MM-DD', int)] stats for the
+    given `changelog_id`"""
     # In production, we're likely have do some check and ensure the current
     # user has access to the given `changelog_id`. Skip check for demo
     cl = ChangeLog.query.get(changelog_id)
-    if request.args:
-        # Filter and return the rows
-        raise NotImplementedError()
-    return jsonify(cl.to_details())
+    t = cl.datatable()
+    dtc = func.to_char(t.c.timestamp, 'YYYY-MM-DD')
+    q = db.session.query(
+            dtc,
+            func.count(t.c.object_id)
+        )
+    q = q.group_by(dtc).\
+        order_by(dtc.desc())
+    return jsonify(q.all())

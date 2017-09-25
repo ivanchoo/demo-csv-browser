@@ -1,5 +1,6 @@
 import { observable, action, useStrict, computed, runInAction } from "mobx";
-import { fetchChangeLogs } from "./api";
+import { fetchChangeLogs, fetchChangeLogStats } from "./api";
+import { toDate } from "./utils";
 import invariant from "invariant";
 
 useStrict(true);
@@ -24,7 +25,7 @@ export class ChangeLog {
 
   @observable queried = null;
 
-  @observable queriedStats = null;
+  @observable stats = null;
 
   @observable query = null;
 
@@ -43,18 +44,46 @@ export class ChangeLog {
             value === null || value instanceof Date,
             "Expects Date or `null`"
           );
-          return this.query[key] = value;
+          return (this.query[key] = value);
         case "query":
           invariant(
             value === null || value instanceof String,
             "Expects String or `null`"
-          )
+          );
           this.query.query = !!value ? null : value;
           break;
         default:
           throw new Error(`Unsupported query ${key}`);
       }
     });
+  }
+
+  @action.bound
+  fetchStats() {
+    return fetchChangeLogStats(this.id).then(
+      resp => {
+        runInAction(() => {
+          this.stats = resp.map(([date, value]) => ({
+            date: toDate(date),
+            value
+          }));
+          const n = this.stats.length;
+          if (this.stats.length) {
+            this.query.from = this.stats[0].date;
+            this.query.to = this.stats[n - 1].date;
+          } else {
+            this.query.from = null;
+            this.query.to = null;
+          }
+        });
+        return resp;
+      },
+      () => {
+        runInAction(() => {
+          this.stats = [];
+        });
+      }
+    );
   }
 }
 

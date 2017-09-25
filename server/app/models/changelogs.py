@@ -50,7 +50,9 @@ class ChangeLog(Model):
             'created_at': from_datetime(self.created_at)
         }
 
-    def to_details(self):
+    def to_stats(self):
+        """Returns a list of [('YYYY-MM-DD', int)] statistics for number of
+        logs for each day."""
         t = self.datatable()
         dtc = func.to_char(t.c.timestamp, 'YYYY-MM-DD')
         q = db.session.query(
@@ -59,9 +61,7 @@ class ChangeLog(Model):
             )
         q = q.group_by(dtc).\
             order_by(dtc.desc())
-        details = self.to_dict()
-        details['series'] = q.all()
-        return details
+        return q.all()
 
     def datatable(self):
         assert self.tablename, 'Expects ChangeLog to have a `tablename`'

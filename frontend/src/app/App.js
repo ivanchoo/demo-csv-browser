@@ -2,18 +2,11 @@ import React from "react";
 import ToolBar from "./toolbar/ToolBar";
 import Timeline from "./Timeline";
 import Results from "./Results";
+import CenterContent from "./components/CenterContent";
 import { inject, observer } from "mobx-react";
 
 const PORTAL_MIN_WIDTH = 768; // small devices, landscape
 const TIMELINE_HEIGHT = 280;
-
-const Empty = props => {
-  return (
-    <div {...props}>
-      <code>TODO: Empty results</code>
-    </div>
-  );
-};
 
 @inject(["store"])
 @observer
@@ -45,11 +38,9 @@ class App extends React.Component {
       );
     } else {
       children.push(
-        <Empty
-          key="empty"
-          className="d-flex align-items-center justify-content-center"
-          style={{ flex: 1 }}
-        />
+        <CenterContent key="empty">
+          <code>Empty</code>
+        </CenterContent>
       );
     }
     return (
