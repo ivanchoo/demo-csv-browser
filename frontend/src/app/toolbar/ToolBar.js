@@ -7,6 +7,16 @@ import { inject, observer } from "mobx-react";
 @inject(["store"])
 @observer
 export default class ToolBar extends React.Component {
+  onFromChange = value => {
+    const { selectedChangeLog } = this.props.store;
+    if (!selectedChangeLog) return;
+    selectedChangeLog.updateQuery({ from: value })
+  };
+  onToChange = value => {
+    const { selectedChangeLog } = this.props.store;
+    if (!selectedChangeLog) return;
+    selectedChangeLog.updateQuery({ to: value })
+  };
   render() {
     const { className = "", store, ...restProps } = this.props;
     const selected = store.selectedChangeLog;
@@ -26,9 +36,16 @@ export default class ToolBar extends React.Component {
           <ChangeLogSelect className="col-2" store={store} />
           <DateInput
             className="col-2 border border-top-0 border-right-0 border-bottom-0"
-            store={store}
+            label="From"
+            value={selected ? selected.query.from : null}
+            onValueChange={this.onFromChange}
           />
-          <DateInput className="col-2" store={store} />
+          <DateInput
+            className="col-2 border border-top-0 border-right-0 border-bottom-0"
+            label="To"
+            value={selected ? selected.query.to : null}
+            onValueChange={this.onToChange}
+          />
           <QueryInput className="col-4" store={store} />
           {submit}
         </form>

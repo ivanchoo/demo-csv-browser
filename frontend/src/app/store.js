@@ -27,6 +27,35 @@ export class ChangeLog {
   @observable queriedStats = null;
 
   @observable query = null;
+
+  constructor() {
+    this.query = new Query();
+  }
+
+  @action.bound
+  updateQuery(next) {
+    Object.keys(next).forEach(key => {
+      const value = next[key];
+      switch (key) {
+        case "from":
+        case "to":
+          invariant(
+            value === null || value instanceof Date,
+            "Expects Date or `null`"
+          );
+          return this.query[key] = value;
+        case "query":
+          invariant(
+            value === null || value instanceof String,
+            "Expects String or `null`"
+          )
+          this.query.query = !!value ? null : value;
+          break;
+        default:
+          throw new Error(`Unsupported query ${key}`);
+      }
+    });
+  }
 }
 
 export class Store {
@@ -55,6 +84,8 @@ export class Store {
             return cl;
           });
           this.status = "success";
+          // TODO: remove auto select
+          this.selectedChangeLog = this.changeLogs[0];
         });
         return resp;
       },

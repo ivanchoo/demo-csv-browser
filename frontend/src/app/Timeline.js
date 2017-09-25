@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import invariant from "invariant";
 import { withContentRect } from "react-measure";
 import { select, event } from "d3-selection";
 import { scaleTime, scaleLinear } from "d3-scale";
@@ -8,44 +9,76 @@ import { brushX } from "d3-brush";
 import { zoom, zoomIdentity } from "d3-zoom";
 import { area, curveMonotoneX } from "d3-shape";
 import { extent, max } from "d3-array";
-import { parseDate } from "./utils";
+import { toDate, fromDate, randomId } from "./utils";
+import { reaction } from "mobx";
+import { inject } from "mobx-react";
 
 let _counter = 1;
 
+@inject(["store"])
 class Timeline extends React.Component {
   static propTypes = {
+    store: PropTypes.object.isRequired,
     measureRef: PropTypes.func,
     measure: PropTypes.func,
     contentRect: PropTypes.object
   };
+  constructor(props) {
+    super(props);
+    this.state = { uid: randomId("timeline-svg") };
+  }
   svgRef = ref => (this._svg = select(ref));
   brushed = () => {
-    if (event.sourceEvent && event.sourceEvent.type === "zoom") return;
+    if (event.sourceEvent && event.sourceEvent.type === "zoom") {
+      // Ignore brush by zoom
+      return;
+    }
     const s = event.selection || this._x2.range();
-    this._x.domain(s.map(this._x2.invert, this._x2));
+    const domain = s.map(this._x2.invert, this._x2);
+    if (event.sourceEvent instanceof MouseEvent) {
+      this.props.store.selectedChangeLog.updateQuery({
+        from: domain[0],
+        to: domain[1]
+      });
+    }
+    this._x.domain(domain);
     this._focus.select(".area").attr("d", this._area);
     this._focus.select(".axis--x").call(this._xAxis);
-    const width = +this._svg.attr("width");
     this._svg
       .select(".zoom")
       .call(
         this._zoom.transform,
-        zoomIdentity.scale(width / (s[1] - s[0])).translate(-s[0], 0)
+        zoomIdentity.scale(this._width / (s[1] - s[0])).translate(-s[0], 0)
       );
   };
   zoomed = () => {
-    if (event.sourceEvent && event.sourceEvent.type === "brush") return;
-    var t = event.transform;
-    this._x.domain(t.rescaleX(this._x2).domain());
+    if (event.sourceEvent && event.sourceEvent.type === "brush") {
+      // Ignore zoom by brush
+      return;
+    }
+    const t = event.transform;
+    const domain = t.rescaleX(this._x2).domain();
+    if (event.sourceEvent instanceof MouseEvent) {
+      this.props.store.selectedChangeLog.updateQuery({
+        from: domain[0],
+        to: domain[1]
+      });
+    }
+    this._x.domain(domain);
     this._focus.select(".area").attr("d", this._area);
     this._focus.select(".axis--x").call(this._xAxis);
     this._context
       .select(".brush")
       .call(this._brush.move, this._x.range().map(t.invertX, t));
   };
-  constructor(props) {
-    super(props);
-    this.state = { uid: `timeline-${_counter++}` };
+  componentDidMount() {
+    this.drawChart();
+  }
+  componentWillUnmount() {
+    this._dispose && this._dispose();
+  }
+  componentDidUpdate() {
+    this.drawChart();
   }
   hasBoundsChanged() {
     if (!this._svg) return false;
@@ -55,27 +88,52 @@ class Timeline extends React.Component {
       width !== +this._svg.attr("width") || height !== +this._svg.attr("height")
     );
   }
+  drawRange(from, to) {
+    if (!from) {
+      from = this._x2.domain()[0];
+    }
+    if (!to) {
+      to = this._x2.domain()[1];
+    }
+    const [xFrom, xTo] = this._x.domain();
+    if (fromDate(from) != fromDate(xFrom) || fromDate(to) != fromDate(xTo)) {
+      const x = this._x2(from),
+        y = this._x2(to);
+      this._context.select(".brush").call(this._brush.move, [x, y]);
+    }
+  }
   drawChart(forceRefresh) {
-    // return;
     if (!this._svg) return;
     if (!forceRefresh) {
       forceRefresh = this.hasBoundsChanged();
     }
-    if (!forceRefresh) {
-      return;
-    }
+    if (!forceRefresh) return;
     this._svg.selectAll("*").remove();
     const { bounds } = this.props.contentRect;
-    if (!bounds.width || !bounds.height) {
-      return;
-    }
-    // Invalidate measurements and remove previous content
-    const margin = { top: 20, right: 20, bottom: 110, left: 40 },
-      margin2 = { top: 230, right: 20, bottom: 30, left: 40 },
+    // Don't draw without bounds or too short
+    if (!bounds.width || !bounds.height || bounds.height < 100) return;
+    // Invalidate measurements, reset previous content and redraw
+    const gutter = 20;
+    const gutter2 = gutter * 2;
+    const spacing = 30;
+    const bottomHeight = Math.floor((bounds.height - gutter2 - spacing) / 3);
+    const topHeight = bounds.height - gutter2 - spacing - bottomHeight;
+    const margin = {
+        top: gutter,
+        right: gutter,
+        bottom: bounds.height - gutter - topHeight,
+        left: gutter2
+      },
+      margin2 = {
+        top: gutter + topHeight + spacing,
+        right: gutter,
+        bottom: gutter2,
+        left: gutter2
+      },
       width = bounds.width - margin.left - margin.right,
       height = bounds.height - margin.top - margin.bottom,
       height2 = bounds.height - margin2.top - margin2.bottom;
-
+    this._width = width;
     this._svg.attr("width", bounds.width).attr("height", bounds.height);
     // Recalculate all scales
     this._x = scaleTime().range([0, width]);
@@ -163,16 +221,36 @@ class Timeline extends React.Component {
       .attr("height", height)
       .attr("transform", `translate(${margin.left},${margin.top})`)
       .call(this._zoom);
-  }
-  componentDidMount() {
-    this.drawChart();
-  }
-  componentDidUpdate() {
-    this.drawChart();
+    if (!this._dispose) {
+      // lazy setup, don't listen until svg is setup
+      const { store } = this.props;
+      invariant(store.selectedChangeLog, "Expects `selectedChangeLog`");
+      // Programmatically observe the query, as d3 updates are decoupled
+      // from the react component update cycle
+      this._dispose = reaction(
+        () => [
+          store.selectedChangeLog.query.from,
+          store.selectedChangeLog.query.to
+        ],
+        ([from, to]) => {
+          this.drawRange(from, to);
+        },
+        {
+          fireImmediately: false,
+          delay: 100
+        }
+      );
+    }
   }
   render() {
     // eslint-disable-next-line
-    const { measureRef, measure, contentRect, ...restProps } = this.props;
+    const {
+      measureRef,
+      measure,
+      contentRect,
+      store,
+      ...restProps
+    } = this.props;
     const { uid } = this.state;
     const { width, height } = contentRect.bounds;
     const hasBounds = width && height;
@@ -3498,6 +3576,6 @@ const data = [
   ["2007-09-25", 5],
   ["2007-09-24", 1]
 ].map(([date, value]) => ({
-  date: parseDate(date),
+  date: toDate(date),
   value
 }));
