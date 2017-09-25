@@ -11,15 +11,21 @@ const jsonGET = (endpoint, body) => {
   }).then(response => {
     return response.json();
   });
-}
+};
 
 export const fetchChangeLogs = () => {
   return jsonGET(`${endpoint}/changelogs`);
 };
 
-
 export const fetchChangeLogStats = id => {
   return jsonGET(`${endpoint}/changelog/${id}/stats`);
+};
+
+export const fetchChangeLogResults = (id, query, page = 0) => {
+  return jsonGET(`${endpoint}/changelog/${id}/results`, {
+    ...query,
+    page
+  });
 };
 
 export const fetchChangeLogResultsStats = (id, query) => {

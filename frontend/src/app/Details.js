@@ -1,8 +1,61 @@
 import React from "react";
+import { inject, observer } from "mobx-react";
+import m from "moment";
 
+@inject(["store"])
+@observer
 export default class Details extends React.Component {
+  state = {
+    page: 0
+  };
+  onTargetClick = evt => {
+    const target = evt.target.dataset["target"];
+    const selectedChangeLog = this.props.store.selectedChangeLog;
+    if (selectedChangeLog) {
+      selectedChangeLog.updateQuery({ target });
+    }
+  };
   render() {
-    const { className = "", ...restProps } = this.props;
+    const { className = "", store, ...restProps } = this.props;
+    const { page } = this.state;
+    const selectedChangeLog = store.selectedChangeLog;
+    if (!selectedChangeLog) {
+      return <code>Empty</code>;
+    }
+    const results =
+      selectedChangeLog.results && selectedChangeLog.results[page];
+    const hasResults = !!(results && results.length);
+    let resultsChildren;
+    if (hasResults) {
+      resultsChildren = (
+        <table className="table">
+          <tbody>
+            {results.map(log => {
+              const { id, object_type, changes, datetime } = log;
+              const uid = `${object_type}:${id}`;
+              const dt = m(datetime);
+              return (
+                <tr key={uid}>
+                  <td style={{ width: "20%", textAlign: "right" }}>
+                    <a href="#" data-target={uid} onClick={this.onTargetClick}>
+                      {uid}
+                    </a>
+                  </td>
+                  <td style={{ width: "30%" }}>
+                    {dt.isValid()
+                      ? dt.local().format("Do MMMM YYYY")
+                      : "Invalid Date"}
+                  </td>
+                  <td>
+                    <code>{changes}</code>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      );
+    }
     return (
       <div {...restProps} className={`${className} d-flex flex-column`}>
         <nav
@@ -20,27 +73,7 @@ export default class Details extends React.Component {
           </form>
         </nav>
         <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-          <table className="table">
-            <tbody>
-              {Array(100)
-                .fill()
-                .map((_, i) => {
-                  return (
-                    <tr key={i}>
-                      <td style={{ width: "25%" }}>
-                        <a href="#">Product:{i}</a>
-                      </td>
-                      <td style={{ width: "25%" }}>17 December, 2017</td>
-                      <td className="h5">
-                        <span className="badge badge-pill badge-light">
-                          Primary:Secondary
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+          {resultsChildren}
         </div>
       </div>
     );

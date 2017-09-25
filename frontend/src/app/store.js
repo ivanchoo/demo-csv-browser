@@ -2,6 +2,7 @@ import { observable, action, useStrict, computed, runInAction } from "mobx";
 import {
   fetchChangeLogs,
   fetchChangeLogStats,
+  fetchChangeLogResults,
   fetchChangeLogResultsStats
 } from "./api";
 import { toDate, toDatetime } from "./utils";
@@ -116,7 +117,30 @@ export class ChangeLog {
   }
 
   @action.bound
-  fetchResults() {
+  fetchResults(page = 0) {
+    return fetchChangeLogResults(this.id, this.query.toObject(), page).then(
+      resp => {
+        runInAction(() => {
+          if (this.results == null) {
+            this.results = [];
+          }
+          this.results[page] = resp;
+        });
+        return resp;
+      },
+      () => {
+        runInAction(() => {
+          if (this.results == null) {
+            this.results = [];
+          }
+          this.results[page] = [];
+        });
+      }
+    );
+  }
+
+  @action.bound
+  fetchResultsStats() {
     return fetchChangeLogResultsStats(this.id, this.query.toObject()).then(
       resp => {
         runInAction(() => {
