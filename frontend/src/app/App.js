@@ -15,6 +15,20 @@ class App extends React.Component {
     const { store } = this.props;
     if (store.status != "success") {
       store.fetch();
+    } else {
+      this.fetchStatsIfRequired();
+    }
+  }
+  componentWillUpdate(nextProps) {
+    this.fetchStatsIfRequired(nextProps);
+  }
+  fetchStatsIfRequired(props) {
+    if (!props) {
+      props = this.props;
+    }
+    const selectedChangeLog = props.store.selectedChangeLog;
+    if (selectedChangeLog && selectedChangeLog.stats == null) {
+      selectedChangeLog.fetchStats();
     }
   }
   render() {

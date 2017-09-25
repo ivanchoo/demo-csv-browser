@@ -278,18 +278,6 @@ const TimelineMeasurable = withContentRect("bounds")(props => {
 @inject(["store"])
 @observer
 export default class Timeline extends React.Component {
-  componentWillMount() {
-    this.fetchStatsIfRequired(this.props.store.selectedChangeLog);
-  }
-  componentWillUpdate(nextProps) {
-    this.fetchStatsIfRequired(nextProps.store.selectedChangeLog);
-  }
-  fetchStatsIfRequired(changelog) {
-    if (!changelog) return;
-    if (changelog.stats == null) {
-      changelog.fetchStats();
-    }
-  }
   render() {
     const selectedChangeLog = this.props.store.selectedChangeLog;
     if (!selectedChangeLog) {

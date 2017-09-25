@@ -85,6 +85,11 @@ export class ChangeLog {
       }
     );
   }
+
+  @action.bound
+  fetchQuery() {
+    
+  }
 }
 
 export class Store {
