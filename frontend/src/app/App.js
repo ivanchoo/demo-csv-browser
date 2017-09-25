@@ -26,9 +26,15 @@ class App extends React.Component {
     if (!props) {
       props = this.props;
     }
-    const selectedChangeLog = props.store.selectedChangeLog;
+    const store = props.store;
+    const selectedChangeLog = store.selectedChangeLog;
     if (selectedChangeLog && selectedChangeLog.stats == null) {
-      selectedChangeLog.fetchStats();
+      selectedChangeLog.fetchStats().then(resp => {
+        if (selectedChangeLog !== store.selectedChangeLog) return;
+        if (selectedChangeLog.results == null) {
+          selectedChangeLog.fetchResults()
+        }
+      });
     }
   }
   render() {

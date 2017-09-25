@@ -25,7 +25,7 @@ export default class ChangeLogSelect extends React.Component {
     const { store, ...restProps } = this.props;
     const { uid } = this.state;
     const changeLogs = store.changeLogs;
-    const selected = store.selectedChangeLog;
+    const selectedChangeLog = store.selectedChangeLog;
     const children = changeLogs
       ? changeLogs.map(changeLog => (
           <option key={changeLog.id} value={changeLog.id}>
@@ -41,10 +41,10 @@ export default class ChangeLogSelect extends React.Component {
         <select
           className="form-control"
           id={uid}
-          value={selected ? selected.id : "0"}
+          value={selectedChangeLog ? selectedChangeLog.id : "0"}
           onChange={this.onChange}
         >
-          {!selected && (
+          {!selectedChangeLog && (
             <option disabled value="0">
               Select:
             </option>

@@ -1,20 +1,44 @@
 import { observable, action, useStrict, computed, runInAction } from "mobx";
-import { fetchChangeLogs, fetchChangeLogStats } from "./api";
-import { toDate } from "./utils";
+import {
+  fetchChangeLogs,
+  fetchChangeLogStats,
+  fetchChangeLogResultsStats
+} from "./api";
+import { toDate, toDatetime } from "./utils";
 import invariant from "invariant";
 
 useStrict(true);
 
 export class Query {
+  /**
+   * @type {Date}
+   */
   @observable from = null;
 
+  /**
+   * @type {Date}
+   */
   @observable to = null;
 
-  @observable query: null;
+  /**
+   * Target object to query, supports 'ObjectType' or 'ObjectType:ObjectId'.
+   * Example: 'Product', 'Object:2'
+   * @type {String}
+   */
+  @observable target: null;
 
-  @computed
-  get fromDate() {
-    return this.startTime !== 0;
+  toObject() {
+    const obj = {};
+    if (this.from) {
+      obj["from"] = toDatetime(this.from);
+    }
+    if (this.from) {
+      obj["to"] = toDatetime(this.to);
+    }
+    if (this.target) {
+      obj["target"] = this.target;
+    }
+    return obj;
   }
 }
 
@@ -25,9 +49,15 @@ export class ChangeLog {
 
   @observable queried = null;
 
+  @observable query = null;
+
   @observable stats = null;
 
-  @observable query = null;
+  @observable results = null;
+
+  @observable objectTypeStats = null;
+
+  @observable objectStats = null;
 
   constructor() {
     this.query = new Query();
@@ -45,13 +75,12 @@ export class ChangeLog {
             "Expects Date or `null`"
           );
           return (this.query[key] = value);
-        case "query":
+        case "target":
           invariant(
-            value === null || value instanceof String,
+            value === null || typeof value == "string",
             "Expects String or `null`"
           );
-          this.query.query = !!value ? null : value;
-          break;
+          return (this.query.target = !!value ? value : null);
         default:
           throw new Error(`Unsupported query ${key}`);
       }
@@ -87,8 +116,30 @@ export class ChangeLog {
   }
 
   @action.bound
-  fetchQuery() {
-    
+  fetchResults() {
+    return fetchChangeLogResultsStats(this.id, this.query.toObject()).then(
+      resp => {
+        runInAction(() => {
+          this.objectTypeStats = resp[
+            "object_types"
+          ].map(([target, value]) => ({
+            target,
+            value
+          }));
+          this.objectStats = resp["objects"].map(([target, value]) => ({
+            target,
+            value
+          }));
+        });
+        return resp;
+      },
+      () => {
+        runInAction(() => {
+          this.objectTypeStats = [];
+          this.objectStats = [];
+        });
+      }
+    );
   }
 }
 

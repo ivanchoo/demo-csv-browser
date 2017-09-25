@@ -9,7 +9,11 @@ export default class QueryInput extends React.Component {
     store: PropTypes.object.isRequired
   };
   onChange = evt => {
-    // TODO
+    const target = evt.target.value;
+    const selectedChangeLog = this.props.store.selectedChangeLog;
+    if (selectedChangeLog) {
+      selectedChangeLog.updateQuery({ target });
+    }
   };
   constructor(props) {
     super(props);
@@ -17,10 +21,10 @@ export default class QueryInput extends React.Component {
   }
   render() {
     const { store, ...restProps } = this.props;
-    const selected = store.selectedChangeLog;
-    if (!selected) return null;
+    const selectedChangeLog = store.selectedChangeLog;
+    if (!selectedChangeLog) return null;
     const { uid } = this.state;
-    const label = "From";
+    const label = "Target";
     return (
       <div {...restProps}>
         <label htmlFor={uid} className="text-secondary small">
@@ -31,7 +35,8 @@ export default class QueryInput extends React.Component {
           className="form-control"
           id={uid}
           placeholder="e.g. 'Product' or 'Order:2'"
-          defaultValue=""
+          value={selectedChangeLog.query.target || ""}
+          onChange={this.onChange}
         />
       </div>
     );

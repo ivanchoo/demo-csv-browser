@@ -9,7 +9,7 @@ STATSIZE = 50
 blueprint = Blueprint('api', __name__)
 
 
-def check_permission(changelog_id):
+def check_permission(changelog_id=None):
     # In production, we're likely have do some check and ensure the current
     # user has access to the given `changelog_id`. Skip check for demo
     pass
