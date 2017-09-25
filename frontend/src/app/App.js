@@ -1,13 +1,22 @@
 import React from "react";
-import ToolBar from "./ToolBar";
+import ToolBar from "./toolbar/ToolBar";
 import Timeline from "./Timeline";
 import Results from "./Results";
-import { inject } from "mobx-react";
+import { inject, observer } from "mobx-react";
 
 const PORTAL_MIN_WIDTH = 768; // small devices, landscape
 const TIMELINE_HEIGHT = 280;
 
+const Empty = props => {
+  return (
+    <div {...props}>
+      <code>TODO: Empty results</code>
+    </div>
+  );
+};
+
 @inject(["store"])
+@observer
 class App extends React.Component {
   componentDidMount() {
     const { store } = this.props;
@@ -16,14 +25,36 @@ class App extends React.Component {
     }
   }
   render() {
-    return (
-      <div className="d-flex flex-column" style={styles.portal}>
-        <ToolBar className="border border-top-0 border-left-0 border-right-0" />
-        <Timeline style={{ height: TIMELINE_HEIGHT }} />
+    const { store } = this.props;
+    const children = [
+      <ToolBar
+        key="toolbar"
+        className="border border-top-0 border-left-0 border-right-0"
+      />
+    ];
+    if (store.selectedChangeLog) {
+      children.push(
+        <Timeline key="timeline" style={{ height: TIMELINE_HEIGHT }} />
+      );
+      children.push(
         <Results
+          key="results"
           className="border border-bottom-0 border-left-0 border-right-0"
           style={{ flex: 1 }}
         />
+      );
+    } else {
+      children.push(
+        <Empty
+          key="empty"
+          className="d-flex align-items-center justify-content-center"
+          style={{ flex: 1 }}
+        />
+      );
+    }
+    return (
+      <div className="d-flex flex-column" style={styles.portal}>
+        {children}
       </div>
     );
   }

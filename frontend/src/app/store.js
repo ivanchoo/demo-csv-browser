@@ -1,5 +1,6 @@
 import { observable, action, useStrict, computed, runInAction } from "mobx";
 import { fetchChangeLogs } from "./api";
+import invariant from "invariant";
 
 useStrict(true);
 
@@ -32,6 +33,14 @@ export class Store {
   @observable changeLogs = [];
 
   @observable status = "init";
+
+  @observable selectedChangeLog = null;
+
+  @action.bound
+  select(changeLog) {
+    invariant(changeLog instanceof ChangeLog, "Expects ChangeLog type");
+    this.selectedChangeLog = changeLog;
+  }
 
   @action.bound
   fetch() {
