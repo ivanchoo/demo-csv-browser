@@ -3,12 +3,15 @@ from ..models import ChangeLog, db
 from sqlalchemy import func
 from functools import reduce, wraps
 from time import sleep
+from app.utils import csv_reader
 import arrow
+import tempfile
+import os
+
 
 PAGESIZE = 20
 STATSIZE = 50
 LATENCY = 0  # For testing and dev
-
 
 blueprint = Blueprint('api', __name__)
 
@@ -38,8 +41,31 @@ def changelogs():
 @blueprint.route('/changelog', methods=['POST'])
 @login_required
 def changelog_upload():
-    """Uploads a new changelog, returns the changelog details."""
-    raise NotImplementedError()
+    """Uploads a new changelog file, returns the changelog details."""
+    file_ = request.files.get('changelog')
+    if not file_ or not file_.filename:
+        abort(404)
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmpfile = tmp.name
+    file_.save(tmpfile)
+    try:
+        cl = ChangeLog(filename=file_.filename, tablename='tmp')
+        db.session.add(cl)
+        db.session.flush()
+        tablename = 'changelog{}'.format(cl.changelog_id)
+        current_app.logger.warn(tablename)
+        cl.tablename = tablename
+        with open(tmpfile, 'r') as fp:
+            reader = csv_reader(fp)
+            cl.populate_datatable(reader, session=db.session)
+        db.session.commit()
+        return jsonify(cl.to_dict())
+    except:
+        current_app.logger.exception('Changelog file upload failed')
+        db.session.rollback()
+    finally:
+        if tmpfile and os.path.exists(tmpfile):
+            os.remove(tmpfile)
 
 
 @blueprint.route('/changelog/<int:changelog_id>/stats')

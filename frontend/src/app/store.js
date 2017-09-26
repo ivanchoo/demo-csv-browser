@@ -3,7 +3,8 @@ import {
   fetchChangeLogs,
   fetchChangeLogStats,
   fetchChangeLogObjects,
-  fetchChangeLogObjectsStats
+  fetchChangeLogObjectsStats,
+  uploadChangeLog
 } from "./api";
 import { toDate, fromDatetime } from "./utils";
 import invariant from "invariant";
@@ -18,7 +19,13 @@ export class Store {
    */
   @observable changeLogs = [];
 
-  @observable changeLogsStatus = new AsyncStatus();
+  @observable changeLogsAsyncStatus = new AsyncStatus();
+
+  /**
+   * Async status for `upload` operations.
+   * @type {AsyncStatus}
+   */
+  @observable uploadAsyncStatus = new AsyncStatus();
 
   /**
    * @type {ChangeLog} `null` denotes no selection.
@@ -46,7 +53,7 @@ export class Store {
    */
   @action.bound
   fetch() {
-    return this.changeLogsStatus.withPromise(fetchChangeLogs()).then(resp => {
+    return this.changeLogsAsyncStatus.withPromise(fetchChangeLogs()).then(resp => {
       runInAction(() => {
         this.changeLogs = resp.map(data => {
           const cl = new ChangeLog();
@@ -57,6 +64,18 @@ export class Store {
         // TODO: remove auto select
         this.selectedChangeLog = this.changeLogs[0];
       });
+      return resp;
+    });
+  }
+
+  /**
+   * Uploads a new csv/
+   * @type {File}
+   */
+  @action.bound
+  upload(file) {
+    return this.uploadAsyncStatus.withPromise(uploadChangeLog(file)).then(resp => {
+      console.log(resp);
       return resp;
     });
   }

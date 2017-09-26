@@ -14,7 +14,7 @@ const TIMELINE_HEIGHT = 280;
 class App extends React.Component {
   componentDidMount() {
     const { store } = this.props;
-    if (!store.changeLogsStatus.initialized) {
+    if (!store.changeLogsAsyncStatus.initialized) {
       store.fetch();
     } else {
       this.fetchStatsIfRequired();

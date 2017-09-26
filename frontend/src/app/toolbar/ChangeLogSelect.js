@@ -2,6 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { observer } from "mobx-react";
 import { randomId } from "../utils";
+import FileUploadInput from "./FileUploadInput";
 
 @observer
 export default class ChangeLogSelect extends React.Component {
@@ -36,7 +37,7 @@ export default class ChangeLogSelect extends React.Component {
     return (
       <div {...restProps}>
         <label htmlFor={uid} className="text-secondary small">
-          <a href="#">Upload New</a>
+          <FileUploadInput>Upload New</FileUploadInput>
         </label>
         <select
           className="form-control"
