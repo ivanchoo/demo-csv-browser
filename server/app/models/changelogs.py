@@ -7,6 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from flask_sqlalchemy import SignallingSession
 from datetime import datetime
 from enum import Enum
+from flask import current_app
 
 
 def create_changelog_table(tablename, metadata=metadata):
@@ -133,16 +134,25 @@ def _populate_datatable(rows, table, session):
     batch = 100
     values = []
     ins = table.insert()
-    tz = pytz.utc
+    tz = pytz.utc  # always store as utc in the backend
+    errors = 0
     for row in rows:
         if not row:
             continue
-        item = {
-            'object_id': row[0],
-            'timestamp': datetime.fromtimestamp(int(row[1]), tz),
-            'object_type': row[2],
-            'object_changes': row[3]
-        }
+        try:
+            item = {
+                'object_id': row[0],
+                'object_type': row[1],
+                'timestamp': datetime.fromtimestamp(int(row[2]), tz),
+                'object_changes': row[3]
+            }
+        except:
+            errors += 1
+            # abort if too much errors
+            if errors > 10:
+                raise
+            else:
+                continue
         values.append(item)
         n += 1
         if n % batch == 0:

@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { toDate, fromDatetime } from "./utils";
 import invariant from "invariant";
+import m from "moment";
 
 useStrict(true);
 
@@ -53,19 +54,21 @@ export class Store {
    */
   @action.bound
   fetch() {
-    return this.changeLogsAsyncStatus.withPromise(fetchChangeLogs()).then(resp => {
-      runInAction(() => {
-        this.changeLogs = resp.map(data => {
-          const cl = new ChangeLog();
-          cl.id = data["changelog_id"];
-          cl.filename = data["filename"];
-          return cl;
+    return this.changeLogsAsyncStatus
+      .withPromise(fetchChangeLogs())
+      .then(resp => {
+        runInAction(() => {
+          this.changeLogs = resp.map(data => {
+            const cl = new ChangeLog();
+            cl.id = data["changelog_id"];
+            cl.filename = data["filename"];
+            return cl;
+          });
+          // TODO: remove auto select
+          this.selectedChangeLog = this.changeLogs[0];
         });
-        // TODO: remove auto select
-        this.selectedChangeLog = this.changeLogs[0];
+        return resp;
       });
-      return resp;
-    });
   }
 
   /**
@@ -74,10 +77,13 @@ export class Store {
    */
   @action.bound
   upload(file) {
-    return this.uploadAsyncStatus.withPromise(uploadChangeLog(file)).then(resp => {
-      console.log(resp);
-      return resp;
-    });
+    return this.uploadAsyncStatus
+      .withPromise(uploadChangeLog(file))
+      .then(resp => {
+        console.log(resp);
+        // TODO: update selectedChangeLog
+        return resp;
+      });
   }
 
   @action.bound
@@ -399,8 +405,11 @@ export class Query {
     if (this.from) {
       obj["from"] = fromDatetime(this.from);
     }
-    if (this.from) {
-      obj["to"] = fromDatetime(this.to);
+    if (this.to) {
+      // To date is always snapped to midnight,
+      // we need to forward it to 23:59 to make sure we cover the entire day,
+      // since our UI does not support fine grain time settings
+      obj["to"] = fromDatetime(m(this.to).utc().endOf('day').toDate());
     }
     if (this.target) {
       obj["target"] = this.target;
