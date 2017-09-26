@@ -1,7 +1,7 @@
 import React from "react";
 import ToolBar from "./toolbar/ToolBar";
 import Timeline from "./Timeline";
-import Results from "./Results";
+import Results from "./results/Results";
 import CenterContent from "./components/CenterContent";
 import { inject, observer } from "mobx-react";
 
