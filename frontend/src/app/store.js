@@ -26,6 +26,11 @@ export class Store {
   @observable selectedChangeLog = null;
 
   /**
+   * @type {Boolean} Whether the log changes should be stylised.
+   */
+  @observable displayAsSource = false;
+
+  /**
    * Sets the `selectedChangeLog` to the given `changeLog` and update bindings.
    *
    * @type {ChangeLog}
@@ -54,6 +59,11 @@ export class Store {
       });
       return resp;
     });
+  }
+
+  @action.bound
+  wantsDisplayAsSource(displayAsSource = false) {
+    this.displayAsSource = displayAsSource;
   }
 }
 
