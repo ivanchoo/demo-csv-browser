@@ -28,10 +28,11 @@ export const fetchChangeLogStats = id => {
   return jsonGET(`${endpoint}/changelog/${id}/stats`);
 };
 
-export const fetchChangeLogObjects = (id, params, page = 0) => {
+export const fetchChangeLogObjects = (id, params, page = 1, size = 20) => {
   return jsonGET(`${endpoint}/changelog/${id}/objects`, {
     ...params,
-    page
+    page,
+    size
   });
 };
 

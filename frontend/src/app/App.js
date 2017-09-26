@@ -57,7 +57,7 @@ class App extends React.Component {
     } else {
       children.push(
         <CenterContent key="empty">
-          <code>Empty</code>
+          <code>TODO: Intro</code>
         </CenterContent>
       );
     }

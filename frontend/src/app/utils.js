@@ -33,5 +33,5 @@ export const toDatetime = dt => m.utc(dt, "YYYY-MM-DDTHH:mm:ss").toDate();
 export const fromDatetime = dt => {
   if (!dt) return "";
   const d = m(dt);
-  return d.isValid() ? d.format("YYYY-MM-DDTHH:mm:ss") : "";
+  return d.isValid() ? d.utc().format("YYYY-MM-DDTHH:mm:ss") : "";
 };

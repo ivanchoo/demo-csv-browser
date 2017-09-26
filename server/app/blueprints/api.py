@@ -1,42 +1,52 @@
 from flask import Blueprint, jsonify, request, abort, current_app
 from ..models import ChangeLog, db
 from sqlalchemy import func
-from functools import reduce
+from functools import reduce, wraps
+from time import sleep
 import arrow
 
 PAGESIZE = 20
 STATSIZE = 50
+LATENCY = 1
+
 
 blueprint = Blueprint('api', __name__)
 
 
-def check_permission(changelog_id=None):
-    # In production, we're likely have do some check and ensure the current
-    # user has access to the given `changelog_id`. Skip check for demo
-    pass
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # In production, we're likely have do some check and ensure the current
+        # user has access to the given endpoint
+        if LATENCY:
+            sleep(LATENCY)
+        return f(*args, **kwargs)
+
+    return decorated
 
 
 @blueprint.route('/changelogs')
+@login_required
 def changelogs():
     """Returns a list of changelogs available in the system."""
     # In production, we're likely to filter and return **only** the changelogs
     # belonging to the current user. For demo we simply return all
-    check_permission()
     resp = [x.to_dict() for x in ChangeLog.query.all()]
     return jsonify(resp)
 
 
 @blueprint.route('/changelog', methods=['POST'])
+@login_required
 def changelog_upload():
     """Uploads a new changelog, returns the changelog details."""
     raise NotImplementedError()
 
 
 @blueprint.route('/changelog/<int:changelog_id>/stats')
+@login_required
 def changelog(changelog_id):
     """Returns a list of [('YYYY-MM-DD', int)] stats for the
     given `changelog_id`"""
-    check_permission(changelog_id)
     cl = ChangeLog.query.get(changelog_id)
     t = cl.datatable()
     dtc = func.to_char(t.c.timestamp, 'YYYY-MM-DD')
@@ -50,21 +60,22 @@ def changelog(changelog_id):
 
 
 @blueprint.route('/changelog/<int:changelog_id>/objects')
+@login_required
 def changelog_results(changelog_id):
-    check_permission(changelog_id)
     cl = ChangeLog.query.get(changelog_id)
     t = cl.datatable()
     q = db.session.query(
             t.c.object_id,
-            func.to_char(t.c.timestamp, 'YYYY-MM-DDThh:mm:SS'),
+            func.to_char(t.c.timestamp, 'YYYY-MM-DD"T"HH24:MI:SS'),
             t.c.object_type,
             t.c.object_changes
         )
     q = _apply_changelog_filters_or_raise(t, q, request.args)
     page = int(request.args.get('page', 0))
+    size = int(request.args.get('size', PAGESIZE))
     q = q.order_by(t.c.timestamp.asc()).\
-        limit(PAGESIZE).\
-        offset(page * PAGESIZE)
+        limit(size).\
+        offset(max(0, page - 1) * size)
     resp = [
         {'id': id, 'datetime': dt, 'object_type': ot, 'changes': changes}
         for id, dt, ot, changes in q.all()
@@ -74,7 +85,6 @@ def changelog_results(changelog_id):
 
 @blueprint.route('/changelog/<int:changelog_id>/objects/stats')
 def changelog_results_stats(changelog_id):
-    check_permission(changelog_id)
     resp = {}
     # Fetch the counts grouped by `object_type`.
     # This gives a snapshot of the overall `object_type` distribution, the top
@@ -134,7 +144,7 @@ def _apply_changelog_filters(table, query, args):
             object_type = target
             object_id = None
         if object_type:
-            query = query.filter(table.c.object_type == object_type)
+            query = query.filter(table.c.object_type.ilike(object_type))
         if object_id:
             query = query.filter(table.c.object_id == object_id)
     return query

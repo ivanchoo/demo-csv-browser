@@ -151,7 +151,7 @@ export class ChangeLog {
    */
   @computed
   get currentObjects() {
-    if (!this.pages) {
+    if (!this.pages || !this.currentPage) {
       return null;
     }
     const objects = this._objects[this.currentPage];
@@ -250,6 +250,7 @@ export class ChangeLog {
           this.objectStatsTotal = total;
           this._objects = {};
           this.pages = total ? Math.ceil(total / PAGESIZE) : 0;
+          this.currentPage = 0;
         });
       })
       .then(resp => {
@@ -267,7 +268,7 @@ export class ChangeLog {
     }
     const queried = this.queried ? this.queried.toObject() : {};
     return this.objectsAsyncStatus
-      .withPromise(fetchChangeLogObjects(this.id, queried, page))
+      .withPromise(fetchChangeLogObjects(this.id, queried, page, PAGESIZE))
       .then(resp => {
         runInAction(() => {
           this._objects[page] = resp;

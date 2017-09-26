@@ -29,6 +29,7 @@ export default class Pagination extends React.Component {
   static propTypes: {
     pages: PropTypes.number.isRequired,
     current: PropTypes.number.isRequired,
+    disabled: PropTypes.bool,
     goto: PropTypes.func
   };
   onClick = evt => {
@@ -57,7 +58,7 @@ export default class Pagination extends React.Component {
     goto(next);
   };
   render() {
-    const { pages, current, goto, ...restProps } = this.props;
+    const { pages, current, goto, disabled = false, ...restProps } = this.props;
     if (pages <= 1) {
       return null;
     }
@@ -79,6 +80,7 @@ export default class Pagination extends React.Component {
           value={i}
           style={itemStyle}
           active={i === current}
+          disabled={disabled}
         />
       );
     }
@@ -90,7 +92,7 @@ export default class Pagination extends React.Component {
           key="start"
           value="start"
           style={ffStyle}
-          disabled={start == 1}
+          disabled={disabled || start == 1}
         />
       );
       items.push(
@@ -100,7 +102,7 @@ export default class Pagination extends React.Component {
           key="end"
           value="end"
           style={ffStyle}
-          disabled={end == pages}
+          disabled={disabled || end == pages}
         />
       );
     }
@@ -111,7 +113,7 @@ export default class Pagination extends React.Component {
         key="previous"
         value="previous"
         style={stepperStyle}
-        disabled={current == 1}
+        disabled={disabled || current == 1}
       />
     );
     items.push(
@@ -121,7 +123,7 @@ export default class Pagination extends React.Component {
         key="next"
         value="next"
         style={stepperStyle}
-        disabled={current == pages}
+        disabled={disabled || current == pages}
       />
     );
     return (

@@ -3,6 +3,7 @@ import { inject, observer } from "mobx-react";
 import m from "moment";
 import Pagination from "./Pagination";
 import ProgressBox from "../components/ProgressBox";
+import Spinner from "../components/Spinner";
 import CenterContent from "../components/CenterContent";
 
 const StylisedChanges = ({ changes }) => {
@@ -48,15 +49,16 @@ export default class Pages extends React.Component {
       className: `${className} d-flex flex-column`
     };
     const selectedChangeLog = store.selectedChangeLog;
-    if (!selectedChangeLog || !selectedChangeLog.objectsAsyncStatus.ready) {
+    if (
+      !selectedChangeLog ||
+      !selectedChangeLog.objectsAsyncStatus.initialized
+    ) {
       return <div {...containerProps} />;
     }
     const results = selectedChangeLog.currentObjects;
     const hasResults = !!(results && results.length);
     let children;
-    if (selectedChangeLog.objectsAsyncStatus.progress) {
-      children = <ProgressBox style={{ height: "100%" }} />;
-    } else if (hasResults) {
+    if (hasResults) {
       const displayAsSource = store.displayAsSource;
       children = (
         <table className="table">
@@ -79,7 +81,7 @@ export default class Pages extends React.Component {
                   </td>
                   <td style={{ width: "30%" }}>
                     {dt.isValid()
-                      ? dt.local().format("Do MMMM YYYY")
+                      ? dt.local().format("Do MMMM YYYY, h:mm:ss a")
                       : "Invalid Date"}
                   </td>
                   <td>{children}</td>
@@ -99,15 +101,10 @@ export default class Pages extends React.Component {
     return (
       <div {...containerProps}>
         <nav
-          className="navbar navbar-light bg-light border border-top-0 border-left-0 border-right-0"
+          className="navbar navbar-light bg-light justify-content-between border border-top-0 border-left-0 border-right-0"
           style={{ height: 58 }}
         >
-          <Pagination
-            pages={selectedChangeLog.pages}
-            current={selectedChangeLog.currentPage}
-            goto={this.onGoto}
-          />
-          <form className="form-inline pull-right">
+          <form className="form-inline">
             <button
               className={`btn btn-sm align-middle btn-outline-secondary ${store.displayAsSource
                 ? "active"
@@ -121,6 +118,15 @@ export default class Pages extends React.Component {
               View Source
             </button>
           </form>
+          <div className="d-flex align-items-center">
+            <Spinner visible={selectedChangeLog.objectsAsyncStatus.progress} />
+            <Pagination
+              pages={selectedChangeLog.pages}
+              current={selectedChangeLog.currentPage}
+              goto={this.onGoto}
+              disabled={!selectedChangeLog.objectsAsyncStatus.ready}
+            />
+          </div>
         </nav>
         <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
           {children}
