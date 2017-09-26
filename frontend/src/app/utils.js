@@ -23,4 +23,15 @@ export const fromDate = d =>
  * @param  {String} dt e.g. '2017-09-25T12:00:00'
  * @return {Date}
  */
-export const toDatetime = dt => m.utc(dt, "YYYY-MM-DDTHH:mm:SS").toDate();
+export const toDatetime = dt => m.utc(dt, "YYYY-MM-DDTHH:mm:ss").toDate();
+
+/**
+ * Reverse of `toDatetime`
+ * @param {Date} dt Date
+ * @return  {String} e.g. '2017-09-25T12:00:00'
+ */
+export const fromDatetime = dt => {
+  if (!dt) return "";
+  const d = m(dt);
+  return d.isValid() ? d.format("YYYY-MM-DDTHH:mm:ss") : "";
+};

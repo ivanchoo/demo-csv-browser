@@ -3,11 +3,18 @@ const jsonHeaders = {
   "content-type": "application/json"
 };
 
-const jsonGET = (endpoint, body) => {
-  return fetch(endpoint, {
+const jsonGET = (endpoint, params) => {
+  let finalEndpoint;
+  if (params) {
+    finalEndpoint = `${endpoint}?${Object.keys(params)
+      .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(params[k]))
+      .join("&")}`;
+  } else {
+    finalEndpoint = endpoint;
+  }
+  return fetch(finalEndpoint, {
     method: "GET",
-    headers: jsonHeaders,
-    body
+    headers: jsonHeaders
   }).then(response => {
     return response.json();
   });
@@ -21,13 +28,13 @@ export const fetchChangeLogStats = id => {
   return jsonGET(`${endpoint}/changelog/${id}/stats`);
 };
 
-export const fetchChangeLogObjects = (id, query, page = 0) => {
+export const fetchChangeLogObjects = (id, params, page = 0) => {
   return jsonGET(`${endpoint}/changelog/${id}/objects`, {
-    ...query,
+    ...params,
     page
   });
 };
 
-export const fetchChangeLogObjectsStats = (id, query) => {
-  return jsonGET(`${endpoint}/changelog/${id}/objects/stats`, query);
+export const fetchChangeLogObjectsStats = (id, params) => {
+  return jsonGET(`${endpoint}/changelog/${id}/objects/stats`, params);
 };

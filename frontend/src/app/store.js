@@ -5,7 +5,7 @@ import {
   fetchChangeLogObjects,
   fetchChangeLogObjectsStats
 } from "./api";
-import { toDate, toDatetime } from "./utils";
+import { toDate, fromDatetime } from "./utils";
 import invariant from "invariant";
 
 useStrict(true);
@@ -158,6 +158,15 @@ export class ChangeLog {
     return !!objects ? objects : null;
   }
 
+  @computed
+  get isQueryDirty() {
+    if (this.queried && this.query) {
+      return !this.queried.equals(this.query);
+    } else {
+      return this.queried != this.query;
+    }
+  }
+
   _objects = {};
 
   /**
@@ -178,8 +187,8 @@ export class ChangeLog {
           }));
           const n = this.stats.length;
           if (this.stats.length) {
-            this.query.from = this.stats[0].date;
-            this.query.to = this.stats[n - 1].date;
+            this.query.to = this.stats[0].date;
+            this.query.from = this.stats[n - 1].date;
           } else {
             this.query.from = null;
             this.query.to = null;
@@ -226,7 +235,7 @@ export class ChangeLog {
       .withPromise(fetchChangeLogObjectsStats(this.id, queried))
       .then(resp => {
         runInAction(() => {
-          this.queried = query;
+          this.queried = query.clone();
           this.objectTypeStats = resp[
             "object_types"
           ].map(([target, value]) => ({
@@ -359,14 +368,36 @@ export class Query {
   toObject() {
     const obj = {};
     if (this.from) {
-      obj["from"] = toDatetime(this.from);
+      obj["from"] = fromDatetime(this.from);
     }
     if (this.from) {
-      obj["to"] = toDatetime(this.to);
+      obj["to"] = fromDatetime(this.to);
     }
     if (this.target) {
       obj["target"] = this.target;
     }
     return obj;
+  }
+
+  /**
+   * @param  {Query} other
+   * @return {Boolean} True if the query parameters are the same
+   */
+  equals(other) {
+    if (!other) return false;
+    const a = this.toObject();
+    const b = other.toObject();
+    return ["from", "to", "target"].reduce(
+      (same, k) => (same ? a[k] == b[k] : same),
+      true
+    );
+  }
+
+  clone() {
+    const next = new Query();
+    next.from = this.from;
+    next.to = this.to;
+    next.target = this.target;
+    return next;
   }
 }
