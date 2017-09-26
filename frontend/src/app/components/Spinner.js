@@ -8,7 +8,6 @@ export default class Spinner extends React.Component {
   render() {
     const { className = "", visible = false, ...restProps } = this.props;
     if (!visible) return null;
-    console.log(visible)
     return (
       <div
         {...restProps}

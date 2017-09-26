@@ -7,7 +7,7 @@ import arrow
 
 PAGESIZE = 20
 STATSIZE = 50
-LATENCY = 1
+LATENCY = 0  # For testing and dev
 
 
 blueprint = Blueprint('api', __name__)
@@ -84,6 +84,7 @@ def changelog_results(changelog_id):
 
 
 @blueprint.route('/changelog/<int:changelog_id>/objects/stats')
+@login_required
 def changelog_results_stats(changelog_id):
     resp = {}
     # Fetch the counts grouped by `object_type`.
@@ -115,7 +116,7 @@ def changelog_results_stats(changelog_id):
     return jsonify(resp)
 
 
-def from_datetime(dt):
+def _from_datetime(dt):
     if not dt:
         return None
     return arrow.get(dt, 'YYYY-MM-DDTHH:mm:ss').datetime
@@ -130,8 +131,8 @@ def _apply_changelog_filters_or_raise(*args):
 
 
 def _apply_changelog_filters(table, query, args):
-    from_ = from_datetime(args.get('from'))
-    to = from_datetime(args.get('to'))
+    from_ = _from_datetime(args.get('from'))
+    to = _from_datetime(args.get('to'))
     target = args.get('target')
     if from_:
         query = query.filter(table.c.timestamp >= from_)
@@ -140,11 +141,15 @@ def _apply_changelog_filters(table, query, args):
     if target:
         if ':' in target:
             object_type, object_id = target.split(':')
+            try:
+                object_id = int(object_id)
+            except:
+                object_id = 0
         else:
             object_type = target
             object_id = None
         if object_type:
             query = query.filter(table.c.object_type.ilike(object_type))
-        if object_id:
+        if object_id is not None:
             query = query.filter(table.c.object_id == object_id)
     return query

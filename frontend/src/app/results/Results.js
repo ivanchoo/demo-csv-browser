@@ -12,18 +12,28 @@ export default class Results extends React.Component {
     const { className = "", store, ...restProps } = this.props;
     const containerProps = { ...restProps, className: `d-flex ${className}` };
     const selectedChangeLog = store.selectedChangeLog;
-    const isReady =
-      !selectedChangeLog || !selectedChangeLog.asyncStatus.ready;
+    const isReady = !selectedChangeLog || !selectedChangeLog.asyncStatus.ready;
     if (isReady) {
       return <ProgressBox {...containerProps} />;
     }
-    if (!selectedChangeLog.currentObjects || !selectedChangeLog.currentObjects.length) {
-      if (selectedChangeLog.objectsAsyncStatus.progress) {
-        return <ProgressBox {...containerProps} />;
+    if (selectedChangeLog.objectStatsAsyncStatus.progress) {
+      // Is fetching object stats, don't show underlying ui
+      return <ProgressBox {...containerProps} />;
+    } else if (
+      selectedChangeLog.objectStatsAsyncStatus.initialized &&
+      selectedChangeLog.objectsAsyncStatus.initialized
+    ) {
+      // Object has been searched, if no results, just cover the ui with notice
+      if (
+        !selectedChangeLog.currentObjects ||
+        !selectedChangeLog.currentObjects.length
+      ) {
+        return (
+          <CenterContent {...containerProps}>
+            <small className="text-secondary">No Results</small>
+          </CenterContent>
+        );
       }
-      return <CenterContent {...containerProps}>
-        <small className="text-secondary">No Results</small>
-      </CenterContent>
     }
 
     return (

@@ -26,36 +26,51 @@ export default class ToolBar extends React.Component {
   render() {
     const { className = "", store, ...restProps } = this.props;
     const selectedChangeLog = store.selectedChangeLog;
-    const submit = selectedChangeLog ? (
-      <div className="col-2 d-flex align-items-end">
-        <button
-          className="btn btn-primary btn-block my-2 my-sm-0"
-          type="submit"
-          onClick={this.onSearch}
-          disabled={!selectedChangeLog.isQueryDirty}
-        >
-          Search
-        </button>
-      </div>
-    ) : null;
+    const selectInput = (
+      <ChangeLogSelect key="input-select" className="col-2" store={store} />
+    );
+    const children = [selectInput];
+    if (selectedChangeLog && selectedChangeLog.asyncStatus.initialized) {
+      children.push(
+        <DateInput
+          key="input-from"
+          className="col-2 border border-top-0 border-right-0 border-bottom-0"
+          label="From"
+          value={selectedChangeLog ? selectedChangeLog.query.from : null}
+          onValueChange={this.onFromChange}
+        />
+      );
+      children.push(
+        <DateInput
+          key="input-to"
+          className="col-2 border border-top-0 border-right-0 border-bottom-0"
+          label="To"
+          value={selectedChangeLog ? selectedChangeLog.query.to : null}
+          onValueChange={this.onToChange}
+        />
+      );
+      children.push(
+        <QueryInput key="input-target" className="col-4" store={store} />
+      );
+      children.push(
+        <div key="input-submit" className="col-2 d-flex align-items-end">
+          <button
+            className={`btn btn-block my-2 my-sm-0 ${selectedChangeLog.isQueryDirty
+              ? "btn-primary"
+              : "btn-secondary"}`}
+            type="submit"
+            onClick={this.onSearch}
+            disabled={!selectedChangeLog.isQueryDirty}
+          >
+            Search
+          </button>
+        </div>
+      );
+    }
     return (
       <div {...restProps} className={`container-fluid bg-light ${className}`}>
-        <form className="row py-2">
-          <ChangeLogSelect className="col-2" store={store} />
-          <DateInput
-            className="col-2 border border-top-0 border-right-0 border-bottom-0"
-            label="From"
-            value={selectedChangeLog ? selectedChangeLog.query.from : null}
-            onValueChange={this.onFromChange}
-          />
-          <DateInput
-            className="col-2 border border-top-0 border-right-0 border-bottom-0"
-            label="To"
-            value={selectedChangeLog ? selectedChangeLog.query.to : null}
-            onValueChange={this.onToChange}
-          />
-          <QueryInput className="col-4" store={store} />
-          {submit}
+        <form className="row py-2" onSubmit={evt => evt.preventDefault()}>
+          {children}
         </form>
       </div>
     );

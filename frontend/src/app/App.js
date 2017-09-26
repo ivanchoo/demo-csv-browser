@@ -3,6 +3,7 @@ import ToolBar from "./toolbar/ToolBar";
 import Timeline from "./Timeline";
 import Results from "./results/Results";
 import CenterContent from "./components/CenterContent";
+import ProgressBox from "./components/ProgressBox";
 import { inject, observer } from "mobx-react";
 
 const PORTAL_MIN_WIDTH = 768; // small devices, landscape
@@ -44,16 +45,20 @@ class App extends React.Component {
       />
     ];
     if (store.selectedChangeLog) {
-      children.push(
-        <Timeline key="timeline" style={{ height: TIMELINE_HEIGHT }} />
-      );
-      children.push(
-        <Results
-          key="results"
-          className="border border-bottom-0 border-left-0 border-right-0"
-          style={{ flex: 1 }}
-        />
-      );
+      if (store.selectedChangeLog.asyncStatus.initialized) {
+        children.push(
+          <Timeline key="timeline" style={{ height: TIMELINE_HEIGHT }} />
+        );
+        children.push(
+          <Results
+            key="results"
+            className="border border-bottom-0 border-left-0 border-right-0"
+            style={{ flex: 1 }}
+          />
+        );
+      } else {
+        children.push(<ProgressBox key="progress" style={{ flex: 1 }} />);
+      }
     } else {
       children.push(
         <CenterContent key="empty">

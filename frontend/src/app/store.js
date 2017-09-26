@@ -231,6 +231,8 @@ export class ChangeLog {
   @action.bound
   search(query = null) {
     const queried = query ? query.toObject() : {};
+    this.objectStatsAsyncStatus.initialized = false;
+    this.objectsAsyncStatus.initialized = false;
     return this.objectStatsAsyncStatus
       .withPromise(fetchChangeLogObjectsStats(this.id, queried))
       .then(resp => {
@@ -254,7 +256,14 @@ export class ChangeLog {
         });
       })
       .then(resp => {
-        return this.pages > 0 ? this.goto(1) : Promise.resolve(resp);
+        return this.pages > 0
+          ? this.goto(1)
+          : new Promise((resolve, reject) => {
+              runInAction(() => {
+                this.objectsAsyncStatus.done();
+                resolve(resp);
+              });
+            });
       });
   }
 
@@ -262,11 +271,11 @@ export class ChangeLog {
   goto(page = 1) {
     invariant(this.pages, "Cannot paginate, no pages detected");
     invariant(page > 0 && page <= this.pages, "`page` out of range");
+    const queried = this.queried ? this.queried.toObject() : {};
     if (this._objects[page] != undefined) {
       this.currentPage = page;
       return Promise.resolve(page);
     }
-    const queried = this.queried ? this.queried.toObject() : {};
     return this.objectsAsyncStatus
       .withPromise(fetchChangeLogObjects(this.id, queried, page, PAGESIZE))
       .then(resp => {

@@ -87,7 +87,7 @@ class TimelineChart extends React.Component {
       width !== +this._svg.attr("width") || height !== +this._svg.attr("height")
     );
   }
-  drawRange(from, to) {
+  drawRange(from, to, forceDraw) {
     if (!from) {
       from = this._x2.domain()[0];
     }
@@ -95,7 +95,7 @@ class TimelineChart extends React.Component {
       to = this._x2.domain()[1];
     }
     const [xFrom, xTo] = this._x.domain();
-    if (fromDate(from) != fromDate(xFrom) || fromDate(to) != fromDate(xTo)) {
+    if (forceDraw || fromDate(from) != fromDate(xFrom) || fromDate(to) != fromDate(xTo)) {
       const x = this._x2(from),
         y = this._x2(to);
       this._context.select(".brush").call(this._brush.move, [x, y]);
@@ -219,8 +219,7 @@ class TimelineChart extends React.Component {
     this._context
       .append("g")
       .attr("class", "brush")
-      .call(this._brush)
-      .call(this._brush.move, this._x.range());
+      .call(this._brush);
     this._svg
       .append("rect")
       .attr("class", "zoom")
@@ -229,6 +228,14 @@ class TimelineChart extends React.Component {
       .attr("height", height)
       .attr("transform", `translate(${margin.left},${margin.top})`)
       .call(this._zoom);
+    // Update current query range
+    const from = selectedChangeLog.query.from;
+    const to = selectedChangeLog.query.to;
+    if (from && to) {
+      this.drawRange(from, to, true);
+    } else {
+      this._context.call(this._brush.move, this._x.range());
+    }
     if (!this._dispose) {
       // lazy setup, don't listen until svg is setup
       const { store } = this.props;
@@ -238,10 +245,13 @@ class TimelineChart extends React.Component {
       this._dispose = reaction(
         () => [
           store.selectedChangeLog.query.from,
-          store.selectedChangeLog.query.to
+          store.selectedChangeLog.query.to,
+          store.selectedChangeLog.asyncStatus.ready
         ],
-        ([from, to]) => {
-          this.drawRange(from, to);
+        ([from, to, ready]) => {
+          if (ready) {
+            this.drawRange(from, to);
+          }
         },
         {
           fireImmediately: false,
@@ -262,10 +272,16 @@ class TimelineChart extends React.Component {
     const { uid } = this.state;
     const { width, height } = contentRect.bounds;
     const hasBounds = width && height;
-    let layer = hasBounds ? <svg ref={this.svgRef} id={uid} /> : null;
+    const selectedChangeLog = store.selectedChangeLog;
+    let children;
+    if (selectedChangeLog && !selectedChangeLog.asyncStatus.initialized) {
+      children = <ProgressBox style={{ width: "100%", height: "100%" }} />;
+    } else {
+      children = hasBounds ? <svg ref={this.svgRef} id={uid} /> : null;
+    }
     return (
       <div ref={measureRef} {...restProps}>
-        {layer}
+        {children}
       </div>
     );
   }

@@ -53,7 +53,11 @@ export default class Pages extends React.Component {
       !selectedChangeLog ||
       !selectedChangeLog.objectsAsyncStatus.initialized
     ) {
-      return <div {...containerProps} />;
+      return (
+        <div {...containerProps}>
+          <ProgressBox style={{ width: "100%", height: "100%" }} />
+        </div>
+      );
     }
     const results = selectedChangeLog.currentObjects;
     const hasResults = !!(results && results.length);
