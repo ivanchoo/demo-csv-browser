@@ -3,8 +3,10 @@ from .core import db, Model, now, metadata, from_datetime
 from sqlalchemy import (
     Column, Integer, String, DateTime, Table, TIMESTAMP, event, func
 )
+from sqlalchemy.ext.hybrid import hybrid_property
 from flask_sqlalchemy import SignallingSession
 from datetime import datetime
+from enum import Enum
 
 
 def create_changelog_table(tablename, metadata=metadata):
@@ -21,6 +23,12 @@ def create_changelog_table(tablename, metadata=metadata):
     return table
 
 
+class ChangeLogStatus(Enum):
+    PENDING = 1
+    READY = 2
+    ERROR = 3
+
+
 class ChangeLog(Model):
     """Represents an uploaded ChangeLog dataset.
 
@@ -33,15 +41,53 @@ class ChangeLog(Model):
 
     changelog_id = Column(Integer, primary_key=True)
 
-    tablename = Column(String, nullable=False, unique=True)
-
     filename = Column(String, nullable=True)
+
+    status = Column(Integer, nullable=False)
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=now)
 
+    @hybrid_property
+    def tablename(self):
+        return self.changelog_id and \
+            'changelogs{}'.format(self.changelog_id) or None
+
+    @tablename.expression
+    def tablename(cls):
+        return func.concat('changelogs', cls.changelog_id)
+
+    @hybrid_property
+    def is_ready(self):
+        return self.status == ChangeLogStatus.READY.value
+
+    @is_ready.expression
+    def is_ready(self):
+        return self.status == ChangeLogStatus.READY.value
+
+    @hybrid_property
+    def is_pending(self):
+        return self.status == ChangeLogStatus.PENDING.value
+
+    @is_pending.expression
+    def is_pending(self):
+        return self.status == ChangeLogStatus.PENDING.value
+
+    @hybrid_property
+    def is_error(self):
+        return self.status == ChangeLogStatus.ERROR.value
+
+    @is_error.expression
+    def is_error(self):
+        return self.status == ChangeLogStatus.ERROR.value
+
+    def set_ready(self):
+        self.status = ChangeLogStatus.READY.value
+
+    def set_error(self):
+        self.status = ChangeLogStatus.ERROR.value
+
     def __repr__(self):
-        return '<ChangeLogMeta({}, tablename="{}")>'.\
-            format(self.changelog_id, self.tablename)
+        return '<ChangeLogMeta({})>'.format(self.changelog_id)
 
     def to_dict(self):
         return {
@@ -64,16 +110,22 @@ class ChangeLog(Model):
         return q.all()
 
     def datatable(self):
-        assert self.tablename, 'Expects ChangeLog to have a `tablename`'
-        if self.tablename in metadata.tables:
-            return metadata.tables[self.tablename]
-        return create_changelog_table(self.tablename)
+        tablename = self.tablename
+        assert tablename, 'Expects ChangeLog to have a `tablename`'
+        if tablename in metadata.tables:
+            return metadata.tables[tablename]
+        return create_changelog_table(tablename)
 
     def populate_datatable(self, rows, session=db.session):
         """Populate the `datatable` with the given csv.
 
         Returns the number of rows inserted"""
         return _populate_datatable(rows, self.datatable(), session)
+
+
+@event.listens_for(ChangeLog, 'init')
+def receive_init(target, args, kwargs):
+    target.status = ChangeLogStatus.PENDING.value
 
 
 def _populate_datatable(rows, table, session):
@@ -114,12 +166,15 @@ def _before_commit(session):
 
 
 def _before_commit_insert_changelog(session, target):
-    assert target.tablename
-    t = create_changelog_table(target.tablename)
+    session.flush()
+    tablename = target.tablename
+    assert tablename, 'Expects tablename at before_commit for insert'
+    t = create_changelog_table(tablename)
     t.create(bind=session.get_bind())
 
 
 def _before_commit_delete_changelog(session, target):
+    session.flush()
     t = target.datatable()
     t.drop(bind=session.get_bind())
     t.metadata.remove(t)

@@ -8,8 +8,7 @@ from sqlalchemy import func
 class ModelsTest(DBTest):
 
     def test_changelogs(self):
-        tablename = 'testtablename'
-        cl = ChangeLog(tablename=tablename)
+        cl = ChangeLog(filename='test')
         db.session.add(cl)
         db.session.commit()
 
@@ -31,8 +30,15 @@ class ModelsTest(DBTest):
 
         assert db.session.query(func.count(table.c.object_id)).scalar() == 10
 
+        changelog_id = cl.changelog_id
+        # Note: we need to remove the session to release the lock to `table`
+        # else postgresql will enter a dead lock
+        db.session.remove()
+
+        cl = ChangeLog.query.get(changelog_id)
+        assert cl
         db.session.delete(cl)
         db.session.commit()
 
-        assert not ChangeLog.query.get(cl.changelog_id)
+        assert not ChangeLog.query.get(changelog_id)
         assert not table.exists(bind=db.session.get_bind())

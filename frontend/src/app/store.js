@@ -11,7 +11,7 @@ import invariant from "invariant";
 
 useStrict(true);
 
-const PAGESIZE = 20;
+const PAGESIZE = 50;
 
 export class Store {
   /**

@@ -34,8 +34,8 @@ def changelogs():
     """Returns a list of changelogs available in the system."""
     # In production, we're likely to filter and return **only** the changelogs
     # belonging to the current user. For demo we simply return all
-    resp = [x.to_dict() for x in ChangeLog.query.all()]
-    return jsonify(resp)
+    q = ChangeLog.query.filter(ChangeLog.is_ready)
+    return jsonify([x.to_dict() for x in q.all()])
 
 
 @blueprint.route('/changelog', methods=['POST'])
@@ -45,24 +45,30 @@ def changelog_upload():
     file_ = request.files.get('changelog')
     if not file_ or not file_.filename:
         abort(404)
+    # In production, we should upload the data file to a blob service
+    # and create the ChangeLog entry with status as PENDING.
+    # This way we can load the data into the table via a background task
+    # without holding up the response.
     tmp = tempfile.NamedTemporaryFile(delete=False)
     tmpfile = tmp.name
     file_.save(tmpfile)
+    cl = ChangeLog(filename=file_.filename)
+    db.session.add(cl)
+    db.session.commit()
     try:
-        cl = ChangeLog(filename=file_.filename, tablename='tmp')
-        db.session.add(cl)
-        db.session.flush()
-        tablename = 'changelog{}'.format(cl.changelog_id)
-        current_app.logger.warn(tablename)
-        cl.tablename = tablename
+        # For demo we simply perform the ETL here
         with open(tmpfile, 'r') as fp:
             reader = csv_reader(fp)
             cl.populate_datatable(reader, session=db.session)
+        cl.set_ready()
         db.session.commit()
         return jsonify(cl.to_dict())
     except:
         current_app.logger.exception('Changelog file upload failed')
         db.session.rollback()
+        cl.set_error()
+        db.session.commit()
+        abort(500)
     finally:
         if tmpfile and os.path.exists(tmpfile):
             os.remove(tmpfile)
