@@ -10,14 +10,108 @@ import invariant from "invariant";
 
 useStrict(true);
 
+export class Store {
+  /**
+   * @type {Array} Array of fetched ChangeLog objects
+   */
+  @observable changeLogs = [];
+
+  @observable changeLogsStatus = null;
+
+  /**
+   * @type {ChangeLog} `null` denotes no selection.
+   */
+  @observable selectedChangeLog = null;
+
+  constructor() {
+    this.changeLogsStatus = new AsyncStatus();
+  }
+
+  /**
+   * Sets the `selectedChangeLog` to the given `changeLog` and update bindings.
+   *
+   * @type {ChangeLog}
+   */
+  @action.bound
+  select(changeLog) {
+    invariant(changeLog instanceof ChangeLog, "Expects ChangeLog type");
+    this.selectedChangeLog = changeLog;
+  }
+
+  /**
+   * Fetches the `changeLogs` information.
+   */
+  @action.bound
+  fetch() {
+    this.changeLogsStatus.begin();
+    return fetchChangeLogs().then(
+      resp => {
+        runInAction(() => {
+          this.changeLogs = resp.map(data => {
+            const cl = new ChangeLog();
+            cl.id = data["changelog_id"];
+            cl.filename = data["filename"];
+            return cl;
+          });
+          this.changeLogsStatus.done();
+          // TODO: remove auto select
+          this.selectedChangeLog = this.changeLogs[0];
+        });
+        return resp;
+      },
+      () => {
+        runInAction(err => {
+          this.changeLogsStatus.done(error);
+        });
+      }
+    );
+  }
+}
+
+/**
+ * Represents the async status of a given context.
+ */
+export class AsyncStatus {
+  /**
+   * Denotes if a given context has been initialized, e.g. fetched intial data.
+   * @type {Boolean}
+   */
+  @observable initialized = false;
+
+  @observable progress = false;
+
+  @observable error = null;
+
+  @observable asyncId = 0;
+
+  @action.bound
+  begin() {
+    this.asyncId++;
+    this.progress = true;
+    this.error = null;
+  }
+
+  @action.bound
+  done(error = null) {
+    if (!this.initialized) {
+      this.initialized = true;
+    }
+    this.progress = false;
+    this.error = error;
+  }
+}
+
+/**
+ * A set of query parameters
+ */
 export class Query {
   /**
-   * @type {Date}
+   * @type {Date} From date range.
    */
   @observable from = null;
 
   /**
-   * @type {Date}
+   * @type {Date} To date range.
    */
   @observable to = null;
 
@@ -28,6 +122,9 @@ export class Query {
    */
   @observable target: null;
 
+  /**
+   * @return {Object} A plain old object ready for query.
+   */
   toObject() {
     const obj = {};
     if (this.from) {
@@ -43,6 +140,10 @@ export class Query {
   }
 }
 
+/**
+ * Encapsulates a single change log data and related actions.
+ * @type {[type]}
+ */
 export class ChangeLog {
   id = null;
 
@@ -64,30 +165,12 @@ export class ChangeLog {
     this.query = new Query();
   }
 
-  @action.bound
-  updateQuery(next) {
-    Object.keys(next).forEach(key => {
-      const value = next[key];
-      switch (key) {
-        case "from":
-        case "to":
-          invariant(
-            value === null || value instanceof Date,
-            "Expects Date or `null`"
-          );
-          return (this.query[key] = value);
-        case "target":
-          invariant(
-            value === null || typeof value == "string",
-            "Expects String or `null`"
-          );
-          return (this.query.target = !!value ? value : null);
-        default:
-          throw new Error(`Unsupported query ${key}`);
-      }
-    });
-  }
-
+  /**
+   * Action call to fetch the stats info for the current ChangeLog.
+   *
+   * Stats info consist of the entire time range of the ChangeLog, and is
+   * not influenced by the `query` parameters.
+   */
   @action.bound
   fetchStats() {
     return fetchChangeLogStats(this.id).then(
@@ -114,6 +197,36 @@ export class ChangeLog {
         });
       }
     );
+  }
+
+  /**
+   * Updates the current query associated the this ChangeLog.
+   *
+   * Note that this query represents the current UI state,
+   * not the query used for fetching the current `results`
+   */
+  @action.bound
+  updateQuery(next) {
+    Object.keys(next).forEach(key => {
+      const value = next[key];
+      switch (key) {
+        case "from":
+        case "to":
+          invariant(
+            value === null || value instanceof Date,
+            "Expects Date or `null`"
+          );
+          return (this.query[key] = value);
+        case "target":
+          invariant(
+            value === null || typeof value == "string",
+            "Expects String or `null`"
+          );
+          return (this.query.target = !!value ? value : null);
+        default:
+          throw new Error(`Unsupported query ${key}`);
+      }
+    });
   }
 
   @action.bound
@@ -161,46 +274,6 @@ export class ChangeLog {
         runInAction(() => {
           this.objectTypeStats = [];
           this.objectStats = [];
-        });
-      }
-    );
-  }
-}
-
-export class Store {
-  @observable changeLogs = [];
-
-  @observable status = "init";
-
-  @observable selectedChangeLog = null;
-
-  @action.bound
-  select(changeLog) {
-    invariant(changeLog instanceof ChangeLog, "Expects ChangeLog type");
-    this.selectedChangeLog = changeLog;
-  }
-
-  @action.bound
-  fetch() {
-    this.status = "pending";
-    return fetchChangeLogs().then(
-      resp => {
-        runInAction(() => {
-          this.changeLogs = resp.map(data => {
-            const cl = new ChangeLog();
-            cl.id = data["changelog_id"];
-            cl.filename = data["filename"];
-            return cl;
-          });
-          this.status = "success";
-          // TODO: remove auto select
-          this.selectedChangeLog = this.changeLogs[0];
-        });
-        return resp;
-      },
-      () => {
-        runInAction(() => {
-          this.status = "error";
         });
       }
     );
