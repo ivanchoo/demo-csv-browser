@@ -36,7 +36,8 @@ def changelogs():
     """Returns a list of changelogs available in the system."""
     # In production, we're likely to filter and return **only** the changelogs
     # belonging to the current user. For demo we simply return all
-    q = ChangeLog.query.filter(ChangeLog.is_ready)
+    q = ChangeLog.query.filter(ChangeLog.is_ready).\
+        order_by(ChangeLog.created_at.desc())
     return jsonify([x.to_dict() for x in q.all()])
 
 

@@ -6,7 +6,7 @@ import {
   fetchChangeLogObjectsStats,
   uploadChangeLog
 } from "./api";
-import { toDate, fromDatetime } from "./utils";
+import { toDate, fromDatetime, toDatetime } from "./utils";
 import invariant from "invariant";
 import m from "moment";
 
@@ -58,12 +58,7 @@ export class Store {
       .withPromise(fetchChangeLogs())
       .then(resp => {
         runInAction(() => {
-          this.changeLogs = resp.map(data => {
-            const cl = new ChangeLog();
-            cl.id = data["changelog_id"];
-            cl.filename = data["filename"];
-            return cl;
-          });
+          this.changeLogs = resp.map(ChangeLog.fromObject);
           // TODO: remove auto select
           this.selectedChangeLog = this.changeLogs[0];
         });
@@ -80,8 +75,11 @@ export class Store {
     return this.uploadAsyncStatus
       .withPromise(uploadChangeLog(file))
       .then(resp => {
-        console.log(resp);
-        // TODO: update selectedChangeLog
+        runInAction(() => {
+          const cl = ChangeLog.fromObject(resp);
+          this.changeLogs.unshift(cl);
+          this.select(cl);
+        });
         return resp;
       });
   }
@@ -96,9 +94,17 @@ export class Store {
  * Encapsulates a single change log data and related actions.
  */
 export class ChangeLog {
-  id = null;
+  static fromObject(obj) {
+    const cl = new ChangeLog();
+    cl.id = obj["changelog_id"];
+    cl.filename = obj["filename"];
+    cl.created_at = toDatetime(obj["created_at"]);
+    return cl;
+  }
 
+  id = null;
   filename = null;
+  created_at = null;
 
   /**
    * Represents the stats info the current ChangeLog with the shape
@@ -409,7 +415,12 @@ export class Query {
       // To date is always snapped to midnight,
       // we need to forward it to 23:59 to make sure we cover the entire day,
       // since our UI does not support fine grain time settings
-      obj["to"] = fromDatetime(m(this.to).utc().endOf('day').toDate());
+      obj["to"] = fromDatetime(
+        m(this.to)
+          .utc()
+          .endOf("day")
+          .toDate()
+      );
     }
     if (this.target) {
       obj["target"] = this.target;
