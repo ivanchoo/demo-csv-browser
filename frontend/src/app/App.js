@@ -27,7 +27,7 @@ class App extends React.Component {
       props = this.props;
     }
     const selectedChangeLog = props.store.selectedChangeLog;
-    if (selectedChangeLog && !selectedChangeLog.statsAsyncStatus.initialized) {
+    if (selectedChangeLog && !selectedChangeLog.asyncStatus.initialized) {
       selectedChangeLog.fetchStats().then(resp => {
         if (!selectedChangeLog.objectsAsyncStatus.initialized) {
           return selectedChangeLog.search(selectedChangeLog.query);

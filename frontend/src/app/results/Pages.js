@@ -1,13 +1,13 @@
 import React from "react";
 import { inject, observer } from "mobx-react";
 import m from "moment";
+import Pagination from "./Pagination";
+import ProgressBox from "../components/ProgressBox";
+import CenterContent from "../components/CenterContent";
 
 @inject(["store"])
 @observer
-export default class Details extends React.Component {
-  state = {
-    page: 0
-  };
+export default class Pages extends React.Component {
   onTargetClick = evt => {
     const target = evt.target.dataset["target"];
     const selectedChangeLog = this.props.store.selectedChangeLog;
@@ -15,19 +15,28 @@ export default class Details extends React.Component {
       selectedChangeLog.updateQuery({ target });
     }
   };
+  onGoto = page => {
+    const selectedChangeLog = this.props.store.selectedChangeLog;
+    if (!selectedChangeLog) return;
+    selectedChangeLog.goto(page);
+  };
   render() {
     const { className = "", store, ...restProps } = this.props;
-    const { page } = this.state;
+    const containerProps = {
+      ...restProps,
+      className: `${className} d-flex flex-column`
+    };
     const selectedChangeLog = store.selectedChangeLog;
-    if (!selectedChangeLog) {
-      return <code>Empty</code>;
+    if (!selectedChangeLog || !selectedChangeLog.objectsAsyncStatus.ready) {
+      return <div {...containerProps} />;
     }
-    const results =
-      selectedChangeLog.results && selectedChangeLog.results[page];
+    const results = selectedChangeLog.currentObjects;
     const hasResults = !!(results && results.length);
-    let resultsChildren;
-    if (hasResults) {
-      resultsChildren = (
+    let children;
+    if (selectedChangeLog.objectsAsyncStatus.progress) {
+      children = <ProgressBox style={{ height: "100%" }} />;
+    } else if (hasResults) {
+      children = (
         <table className="table">
           <tbody>
             {results.map(log => {
@@ -55,14 +64,24 @@ export default class Details extends React.Component {
           </tbody>
         </table>
       );
+    } else {
+      children = (
+        <CenterContent style={{ height: "100%" }}>
+          <small className="text-secondary">No Results</small>
+        </CenterContent>
+      );
     }
     return (
-      <div {...restProps} className={`${className} d-flex flex-column`}>
+      <div {...containerProps}>
         <nav
           className="navbar navbar-light bg-light border border-top-0 border-left-0 border-right-0"
           style={{ height: 58 }}
         >
-          {Pagination}
+          <Pagination
+            pages={selectedChangeLog.pages}
+            current={selectedChangeLog.currentPage}
+            goto={this.onGoto}
+          />
           <form className="form-inline">
             <button
               className="btn btn-sm align-middle btn-outline-secondary"
@@ -73,41 +92,9 @@ export default class Details extends React.Component {
           </form>
         </nav>
         <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-          {resultsChildren}
+          {children}
         </div>
       </div>
     );
   }
 }
-
-const Pagination = (
-  <nav className="" aria-label="Page navigation example">
-    <ul className="pagination m-0">
-      <li className="page-item">
-        <a className="page-link" href="#">
-          Previous
-        </a>
-      </li>
-      <li className="page-item">
-        <a className="page-link" href="#">
-          1
-        </a>
-      </li>
-      <li className="page-item">
-        <a className="page-link" href="#">
-          2
-        </a>
-      </li>
-      <li className="page-item">
-        <a className="page-link" href="#">
-          3
-        </a>
-      </li>
-      <li className="page-item">
-        <a className="page-link" href="#">
-          Next
-        </a>
-      </li>
-    </ul>
-  </nav>
-);

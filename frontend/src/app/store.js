@@ -10,6 +10,8 @@ import invariant from "invariant";
 
 useStrict(true);
 
+const PAGESIZE = 20;
+
 export class Store {
   /**
    * @type {Array} Array of fetched ChangeLog objects
@@ -76,7 +78,7 @@ export class ChangeLog {
   /**
    * Async status of `stats`
    */
-  @observable statsAsyncStatus = new AsyncStatus();
+  @observable asyncStatus = new AsyncStatus();
 
   /**
    * The current query parameters state for the UI. Note this is not
@@ -112,7 +114,6 @@ export class ChangeLog {
    */
   @observable objectStatsAsyncStatus = new AsyncStatus();
 
-
   /**
    * The query parameters used to fetch `objects`.
    * @type {Query}
@@ -122,12 +123,12 @@ export class ChangeLog {
   /**
    * @type {Number} Total number of pages in `objects`
    */
-  @observable pages = -1;
+  @observable pages = 0;
 
   /**
    * @type {Number} Current page number of `currentResults`
    */
-  @observable currentPage = -1;
+  @observable currentPage = 0;
 
   /**
    * @type {AsyncStatus} Async status for `objects`
@@ -138,7 +139,14 @@ export class ChangeLog {
    * An array of `object` results of the given `currentPage`.
    * @type {Array}
    */
-  @observable currentObjects = null;
+  @computed
+  get currentObjects() {
+    if (!this.pages) {
+      return null;
+    }
+    const objects = this._objects[this.currentPage];
+    return !!objects ? objects : null;
+  }
 
   _objects = {};
 
@@ -150,7 +158,7 @@ export class ChangeLog {
    */
   @action.bound
   fetchStats() {
-    return this.statsAsyncStatus
+    return this.asyncStatus
       .withPromise(fetchChangeLogStats(this.id))
       .then(resp => {
         runInAction(() => {
@@ -219,9 +227,10 @@ export class ChangeLog {
             target,
             value
           }));
-          this.objectStatsTotal = resp['total'];
+          const total = resp["total"];
+          this.objectStatsTotal = total;
           this._objects = {};
-          this.pages = 1;
+          this.pages = total ? Math.ceil(total / PAGESIZE) : 0;
         });
       })
       .then(resp => {
@@ -231,6 +240,7 @@ export class ChangeLog {
 
   @action.bound
   goto(page = 1) {
+    invariant(this.pages, "Cannot paginate, no pages detected");
     invariant(page > 0 && page <= this.pages, "`page` out of range");
     if (this._objects[page] != undefined) {
       this.currentPage = page;
@@ -264,6 +274,11 @@ export class AsyncStatus {
   @observable error = null;
 
   @observable asyncId = 0;
+
+  @computed
+  get ready() {
+    return this.initialized ? !this.progress : false;
+  }
 
   @action.bound
   begin() {
