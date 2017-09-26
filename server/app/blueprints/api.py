@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, abort, current_app
 from ..models import ChangeLog, db
 from sqlalchemy import func
+from functools import reduce
 import arrow
 
 PAGESIZE = 20
@@ -48,7 +49,7 @@ def changelog(changelog_id):
     return jsonify(q.all())
 
 
-@blueprint.route('/changelog/<int:changelog_id>/results')
+@blueprint.route('/changelog/<int:changelog_id>/objects')
 def changelog_results(changelog_id):
     check_permission(changelog_id)
     cl = ChangeLog.query.get(changelog_id)
@@ -71,10 +72,15 @@ def changelog_results(changelog_id):
     return jsonify(resp)
 
 
-@blueprint.route('/changelog/<int:changelog_id>/results/stats')
+@blueprint.route('/changelog/<int:changelog_id>/objects/stats')
 def changelog_results_stats(changelog_id):
     check_permission(changelog_id)
     resp = {}
+    # Fetch the counts grouped by `object_type`.
+    # This gives a snapshot of the overall `object_type` distribution, the top
+    # `object_type` and also we derive the total counts here.
+    # Note that we don't limit the results here as `object_type` typically
+    # has limited variety
     cl = ChangeLog.query.get(changelog_id)
     t = cl.datatable()
     object_type_c = func.count(t.c.object_id)
@@ -84,16 +90,15 @@ def changelog_results_stats(changelog_id):
         )
     q = _apply_changelog_filters_or_raise(t, q, request.args).\
         group_by(t.c.object_type).\
-        order_by(object_type_c.desc()).\
-        limit(STATSIZE)
+        order_by(object_type_c.desc())
     resp['object_types'] = q.all()
-    object_c = func.concat(t.c.object_type, ':', t.c.object_id)
+    resp['total'] = reduce(lambda x, y: x + y[1], resp['object_types'], 0)
     q = db.session.query(
-            object_c,
+            func.concat(t.c.object_type, ':', t.c.object_id),
             object_type_c
         )
     q = _apply_changelog_filters_or_raise(t, q, request.args).\
-        group_by(object_c).\
+        group_by(t.c.object_type, t.c.object_id).\
         order_by(object_type_c.desc()).\
         limit(STATSIZE)
     resp['objects'] = q.all()

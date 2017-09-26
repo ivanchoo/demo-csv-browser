@@ -2,8 +2,8 @@ import { observable, action, useStrict, computed, runInAction } from "mobx";
 import {
   fetchChangeLogs,
   fetchChangeLogStats,
-  fetchChangeLogResults,
-  fetchChangeLogResultsStats
+  fetchChangeLogObjects,
+  fetchChangeLogObjectsStats
 } from "./api";
 import { toDate, toDatetime } from "./utils";
 import invariant from "invariant";
@@ -16,16 +16,12 @@ export class Store {
    */
   @observable changeLogs = [];
 
-  @observable changeLogsStatus = null;
+  @observable changeLogsStatus = new AsyncStatus();
 
   /**
    * @type {ChangeLog} `null` denotes no selection.
    */
   @observable selectedChangeLog = null;
-
-  constructor() {
-    this.changeLogsStatus = new AsyncStatus();
-  }
 
   /**
    * Sets the `selectedChangeLog` to the given `changeLog` and update bindings.
@@ -43,28 +39,213 @@ export class Store {
    */
   @action.bound
   fetch() {
-    this.changeLogsStatus.begin();
-    return fetchChangeLogs().then(
-      resp => {
+    return this.changeLogsStatus.withPromise(fetchChangeLogs()).then(resp => {
+      runInAction(() => {
+        this.changeLogs = resp.map(data => {
+          const cl = new ChangeLog();
+          cl.id = data["changelog_id"];
+          cl.filename = data["filename"];
+          return cl;
+        });
+        // TODO: remove auto select
+        this.selectedChangeLog = this.changeLogs[0];
+      });
+      return resp;
+    });
+  }
+}
+
+/**
+ * Encapsulates a single change log data and related actions.
+ */
+export class ChangeLog {
+  id = null;
+
+  filename = null;
+
+  /**
+   * Represents the stats info the current ChangeLog with the shape
+   * `[{ date: Date, value: Number }]` where
+   *
+   * - `date`: The date of the given entry
+   * - `value`: Number of logs found of the given date
+   * @type {Array}
+   */
+  @observable stats = [];
+
+  /**
+   * Async status of `stats`
+   */
+  @observable statsAsyncStatus = new AsyncStatus();
+
+  /**
+   * The current query parameters state for the UI. Note this is not
+   * representative of the `objects` query. See `queried`.
+   * @type {Query}
+   */
+  @observable query = new Query();
+
+  /**
+   * Represents the stats info of the current `objects` with the shape
+   * `[{ target: String, value: Number }]` where `target` is the `object_type`,
+   * e.g. 'Product' or 'Order'
+   * @type {Array}
+   */
+  @observable objectTypeStats = null;
+
+  /**
+   * Represents the stats info of the current `objects` with the shape
+   * `[{ target: String, value: Number }]` where `target` is
+   * `object_type:object_id`, e.g. 'Product:1' or 'Order:2'
+   * @type {Array}
+   */
+  @observable objectStats = null;
+
+  /**
+   * @type {Number} Total number of `objects`.
+   */
+  @observable objectStatsTotal = 0;
+
+  /**
+   * Async status for `objectTypeStats` and `objectStats`.
+   * @type {AsyncStatus}
+   */
+  @observable objectStatsAsyncStatus = new AsyncStatus();
+
+
+  /**
+   * The query parameters used to fetch `objects`.
+   * @type {Query}
+   */
+  @observable queried = null;
+
+  /**
+   * @type {Number} Total number of pages in `objects`
+   */
+  @observable pages = -1;
+
+  /**
+   * @type {Number} Current page number of `currentResults`
+   */
+  @observable currentPage = -1;
+
+  /**
+   * @type {AsyncStatus} Async status for `objects`
+   */
+  @observable objectsAsyncStatus = new AsyncStatus();
+
+  /**
+   * An array of `object` results of the given `currentPage`.
+   * @type {Array}
+   */
+  @observable currentObjects = null;
+
+  _objects = {};
+
+  /**
+   * Action call to fetch the stats info for the current ChangeLog.
+   *
+   * Stats info consist of the entire time range of the ChangeLog, and is
+   * not influenced by the `query` parameters.
+   */
+  @action.bound
+  fetchStats() {
+    return this.statsAsyncStatus
+      .withPromise(fetchChangeLogStats(this.id))
+      .then(resp => {
         runInAction(() => {
-          this.changeLogs = resp.map(data => {
-            const cl = new ChangeLog();
-            cl.id = data["changelog_id"];
-            cl.filename = data["filename"];
-            return cl;
-          });
-          this.changeLogsStatus.done();
-          // TODO: remove auto select
-          this.selectedChangeLog = this.changeLogs[0];
+          this.stats = resp.map(([date, value]) => ({
+            date: toDate(date),
+            value
+          }));
+          const n = this.stats.length;
+          if (this.stats.length) {
+            this.query.from = this.stats[0].date;
+            this.query.to = this.stats[n - 1].date;
+          } else {
+            this.query.from = null;
+            this.query.to = null;
+          }
         });
         return resp;
-      },
-      () => {
-        runInAction(err => {
-          this.changeLogsStatus.done(error);
-        });
+      });
+  }
+
+  /**
+   * Updates the current query associated the this ChangeLog.
+   *
+   * Note that this query represents the current UI state,
+   * not the query used for fetching the current `objects`
+   */
+  @action.bound
+  updateQuery(next) {
+    Object.keys(next).forEach(key => {
+      const value = next[key];
+      switch (key) {
+        case "from":
+        case "to":
+          invariant(
+            value === null || value instanceof Date,
+            "Expects Date or `null`"
+          );
+          return (this.query[key] = value);
+        case "target":
+          invariant(
+            value === null || typeof value == "string",
+            "Expects String or `null`"
+          );
+          return (this.query.target = !!value ? value : null);
+        default:
+          throw new Error(`Unsupported query ${key}`);
       }
-    );
+    });
+  }
+
+  @action.bound
+  search(query = null) {
+    const queried = query ? query.toObject() : {};
+    return this.objectStatsAsyncStatus
+      .withPromise(fetchChangeLogObjectsStats(this.id, queried))
+      .then(resp => {
+        runInAction(() => {
+          this.queried = query;
+          this.objectTypeStats = resp[
+            "object_types"
+          ].map(([target, value]) => ({
+            target,
+            value
+          }));
+          this.objectStats = resp["objects"].map(([target, value]) => ({
+            target,
+            value
+          }));
+          this.objectStatsTotal = resp['total'];
+          this._objects = {};
+          this.pages = 1;
+        });
+      })
+      .then(resp => {
+        return this.pages > 0 ? this.goto(1) : Promise.resolve(resp);
+      });
+  }
+
+  @action.bound
+  goto(page = 1) {
+    invariant(page > 0 && page <= this.pages, "`page` out of range");
+    if (this._objects[page] != undefined) {
+      this.currentPage = page;
+      return Promise.resolve(page);
+    }
+    const queried = this.queried ? this.queried.toObject() : {};
+    return this.objectsAsyncStatus
+      .withPromise(fetchChangeLogObjects(this.id, queried, page))
+      .then(resp => {
+        runInAction(() => {
+          this._objects[page] = resp;
+          this.currentPage = page;
+        });
+        return page;
+      });
   }
 }
 
@@ -98,6 +279,31 @@ export class AsyncStatus {
     }
     this.progress = false;
     this.error = error;
+  }
+
+  /**
+   * Calls `begin` and `done` via the given `promise` callbacks.
+   *
+   * Note that this method will `swallow` any error throw.
+   * @returns {Promise}
+   */
+  @action.bound
+  withPromise(promise) {
+    this.begin();
+    return promise.then(
+      resp => {
+        runInAction(() => {
+          this.done();
+        });
+        return resp;
+      },
+      err => {
+        runInAction(() => {
+          this.done(err);
+        });
+        throw err;
+      }
+    );
   }
 }
 
@@ -137,145 +343,5 @@ export class Query {
       obj["target"] = this.target;
     }
     return obj;
-  }
-}
-
-/**
- * Encapsulates a single change log data and related actions.
- * @type {[type]}
- */
-export class ChangeLog {
-  id = null;
-
-  filename = null;
-
-  @observable queried = null;
-
-  @observable query = null;
-
-  @observable stats = null;
-
-  @observable results = null;
-
-  @observable objectTypeStats = null;
-
-  @observable objectStats = null;
-
-  constructor() {
-    this.query = new Query();
-  }
-
-  /**
-   * Action call to fetch the stats info for the current ChangeLog.
-   *
-   * Stats info consist of the entire time range of the ChangeLog, and is
-   * not influenced by the `query` parameters.
-   */
-  @action.bound
-  fetchStats() {
-    return fetchChangeLogStats(this.id).then(
-      resp => {
-        runInAction(() => {
-          this.stats = resp.map(([date, value]) => ({
-            date: toDate(date),
-            value
-          }));
-          const n = this.stats.length;
-          if (this.stats.length) {
-            this.query.from = this.stats[0].date;
-            this.query.to = this.stats[n - 1].date;
-          } else {
-            this.query.from = null;
-            this.query.to = null;
-          }
-        });
-        return resp;
-      },
-      () => {
-        runInAction(() => {
-          this.stats = [];
-        });
-      }
-    );
-  }
-
-  /**
-   * Updates the current query associated the this ChangeLog.
-   *
-   * Note that this query represents the current UI state,
-   * not the query used for fetching the current `results`
-   */
-  @action.bound
-  updateQuery(next) {
-    Object.keys(next).forEach(key => {
-      const value = next[key];
-      switch (key) {
-        case "from":
-        case "to":
-          invariant(
-            value === null || value instanceof Date,
-            "Expects Date or `null`"
-          );
-          return (this.query[key] = value);
-        case "target":
-          invariant(
-            value === null || typeof value == "string",
-            "Expects String or `null`"
-          );
-          return (this.query.target = !!value ? value : null);
-        default:
-          throw new Error(`Unsupported query ${key}`);
-      }
-    });
-  }
-
-  @action.bound
-  fetchResults(page = 0) {
-    return fetchChangeLogResults(this.id, this.query.toObject(), page).then(
-      resp => {
-        runInAction(() => {
-          if (this.results == null) {
-            this.results = [];
-          }
-          this.results[page] = resp;
-        });
-        return resp;
-      },
-      () => {
-        runInAction(() => {
-          if (this.results == null) {
-            this.results = [];
-          }
-          this.results[page] = [];
-        });
-      }
-    );
-  }
-
-  @action.bound
-  fetchResultsStats() {
-    return fetchChangeLogResultsStats(this.id, this.query.toObject()).then(
-      resp => {
-        runInAction(() => {
-          this.objectTypeStats = resp[
-            "object_types"
-          ].map(([target, value]) => ({
-            target,
-            value
-          }));
-          this.objectStats = resp["objects"].map(([target, value]) => ({
-            target,
-            value
-          }));
-        });
-        return resp;
-      },
-      () => {
-        runInAction(() => {
-          this.objectTypeStats = [];
-          this.objectStats = [];
-        });
-      }
-    );
   }
 }

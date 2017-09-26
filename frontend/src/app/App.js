@@ -26,13 +26,11 @@ class App extends React.Component {
     if (!props) {
       props = this.props;
     }
-    const store = props.store;
-    const selectedChangeLog = store.selectedChangeLog;
-    if (selectedChangeLog && selectedChangeLog.stats == null) {
+    const selectedChangeLog = props.store.selectedChangeLog;
+    if (selectedChangeLog && !selectedChangeLog.statsAsyncStatus.initialized) {
       selectedChangeLog.fetchStats().then(resp => {
-        if (selectedChangeLog !== store.selectedChangeLog) return;
-        if (selectedChangeLog.results == null) {
-          selectedChangeLog.fetchResults()
+        if (!selectedChangeLog.objectsAsyncStatus.initialized) {
+          return selectedChangeLog.search(selectedChangeLog.query);
         }
       });
     }

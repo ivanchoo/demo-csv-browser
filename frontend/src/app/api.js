@@ -21,13 +21,13 @@ export const fetchChangeLogStats = id => {
   return jsonGET(`${endpoint}/changelog/${id}/stats`);
 };
 
-export const fetchChangeLogResults = (id, query, page = 0) => {
-  return jsonGET(`${endpoint}/changelog/${id}/results`, {
+export const fetchChangeLogObjects = (id, query, page = 0) => {
+  return jsonGET(`${endpoint}/changelog/${id}/objects`, {
     ...query,
     page
   });
 };
 
-export const fetchChangeLogResultsStats = (id, query) => {
-  return jsonGET(`${endpoint}/changelog/${id}/results/stats`, query);
+export const fetchChangeLogObjectsStats = (id, query) => {
+  return jsonGET(`${endpoint}/changelog/${id}/objects/stats`, query);
 };
