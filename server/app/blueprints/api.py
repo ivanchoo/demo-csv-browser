@@ -1,12 +1,14 @@
-from flask import Blueprint, jsonify, request, abort, current_app
+from flask import Blueprint, jsonify, request, abort, current_app, Response
 from ..models import ChangeLog, db
+from ..utils import csv_reader, csv_writer, LineBuffer
+from ..samples import create_samples, create_headers
 from sqlalchemy import func
 from functools import reduce, wraps
 from time import sleep
-from app.utils import csv_reader
 import arrow
 import tempfile
 import os
+import random
 
 
 PAGESIZE = 20
@@ -72,6 +74,19 @@ def changelog_upload():
     finally:
         if tmpfile and os.path.exists(tmpfile):
             os.remove(tmpfile)
+
+
+@blueprint.route('/changelog/sample')
+@login_required
+def changelog_sample():
+    """Downloads a sample changelog file with random data."""
+    rows = random.randint(300, 30000)
+    filename = 'sample-{}-rows.csv'.format(rows)
+    stream = _stream_csv(create_samples(rows), create_headers())
+    resp = Response(stream, mimetype='text/csv')
+    resp.headers['Content-Disposition'] = \
+        'attachment; filename={}'.format(filename)
+    return resp
 
 
 @blueprint.route('/changelog/<int:changelog_id>/stats')
@@ -146,6 +161,17 @@ def changelog_results_stats(changelog_id):
         limit(STATSIZE)
     resp['objects'] = q.all()
     return jsonify(resp)
+
+
+def _stream_csv(rows, headers=None):
+    buffer = LineBuffer()
+    writer = csv_writer(buffer)
+    if headers:
+        writer.writerow(headers)
+        yield buffer.read()
+    for row in rows:
+        writer.writerow(row)
+        yield buffer.read()
 
 
 def _from_datetime(dt):

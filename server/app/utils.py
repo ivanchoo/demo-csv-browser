@@ -16,3 +16,14 @@ def csv_reader(fp, dialect='escaped'):
 
 def csv_writer(fp, dialect='escaped', **kwargs):
     return csv.writer(fp, dialect=dialect, **kwargs)
+
+
+class LineBuffer():
+
+    _line = None
+
+    def write(self, line):
+        self._line = line
+
+    def read(self):
+        return self._line
