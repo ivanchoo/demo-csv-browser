@@ -2,7 +2,7 @@ import React from "react";
 import { inject } from "mobx-react";
 
 @inject(["store"])
-export default class FileUploadInput extends React.Component {
+export default class FileUploadLink extends React.Component {
   onClick = evt => {
     evt.preventDefault();
     this._input.click();

@@ -4,6 +4,7 @@ import Timeline from "./Timeline";
 import Results from "./results/Results";
 import CenterContent from "./components/CenterContent";
 import ProgressBox from "./components/ProgressBox";
+import SampleDownloadLink from "./toolbar/SampleDownloadLink";
 import { inject, observer } from "mobx-react";
 
 const PORTAL_MIN_WIDTH = 768; // small devices, landscape
@@ -60,9 +61,28 @@ class App extends React.Component {
         children.push(<ProgressBox key="progress" style={{ flex: 1 }} />);
       }
     } else {
+      const paragraphClassName = "p-2 text-secondary w-75 text-center";
       children.push(
-        <CenterContent key="empty">
-          <code>TODO: Intro</code>
+        <CenterContent
+          key="empty"
+          className="d-flex flex-column align-items-center"
+          style={{ flex: 1 }}
+        >
+          <img
+            src=""
+            className="img-thumbnail mb-4"
+            style={{ width: 480, height: 360 }}
+          />
+          <p className={paragraphClassName}>
+            This application allows you to search through a large dataset to
+            locate data of interest. Simply upload a CSV file of a predefined
+            format to begin. You can <a href="#">download</a> a random CSV file
+            to try.
+          </p>
+          <p className={paragraphClassName}>
+            Download a <SampleDownloadLink>random CSV</SampleDownloadLink> and
+            give it a try.
+          </p>
         </CenterContent>
       );
     }

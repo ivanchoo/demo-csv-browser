@@ -60,3 +60,5 @@ export const removeChangeLog = id => {
     return response.json();
   });
 };
+
+export const downloadSampleEndpoint = `${endpoint}/changelog/sample`;

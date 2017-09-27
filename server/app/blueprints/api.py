@@ -13,7 +13,7 @@ import random
 
 PAGESIZE = 20
 STATSIZE = 50
-LATENCY = 1  # For testing and dev
+LATENCY = 0  # For testing and dev
 
 blueprint = Blueprint('api', __name__)
 

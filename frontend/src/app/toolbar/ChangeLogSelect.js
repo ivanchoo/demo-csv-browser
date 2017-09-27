@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { observer } from "mobx-react";
 import { randomId } from "../utils";
-import FileUploadInput from "./FileUploadInput";
+import FileUploadLink from "./FileUploadLink";
 
 @observer
 export default class ChangeLogSelect extends React.Component {
@@ -46,9 +46,9 @@ You cannot undo this action.'`;
     const labelChildren = [];
     if (hasChangeLogs) {
       labelChildren.push(
-        <FileUploadInput key="link-upload" disabled={disabled}>
+        <FileUploadLink key="link-upload" disabled={disabled}>
           Add <span className="d-none d-lg-inline">New</span>
-        </FileUploadInput>
+        </FileUploadLink>
       );
     } else {
       labelChildren.push("Start Here");
@@ -87,12 +87,12 @@ You cannot undo this action.'`;
         ))}
       </select>
     ) : (
-      <FileUploadInput
+      <FileUploadLink
         className="btn btn-primary btn-block"
         disabled={disabled}
       >
         Add <span className="d-none d-lg-inline">Log File</span>
-      </FileUploadInput>
+      </FileUploadLink>
     );
     return (
       <div {...restProps}>
