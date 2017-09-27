@@ -84,33 +84,7 @@ module.exports = {
   module: {
     loaders: [
       { test: /\.(jsx|js)$/, loader: 'babel-loader', include: SRC_DIR },
-      // {
-      //   test: /\.css$/,
-      //   use: [
-      //     'style-loader',
-      //     'css-loader?modules&importLoaders=1&localIdentName=[name]__[local]__[hash:base64:5]',
-      //     'postcss-loader',
-      //   ],
-      // },
-      // {
-      //   test: /\.scss$/,
-      //   use: [
-      //     'style-loader',
-      //     'css-loader?modules&importLoaders=2&localIdentName=[name]__[local]__[hash:base64:5]',
-      //     'postcss-loader',
-      //     'sass-loader',
-      //   ],
-      // },
-      // {
-      //   test: /\.woff2?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-      //   use: 'url-loader?limit=10000',
-      // },
-      // {
-      //   test: /\.(ttf|eot|svg)(\?[\s\S]+)?$/,
-      //   use: 'file-loader',
-      // },
-      // { test: /\.css$/, loader: 'style!css!' },
-      // { test: /\.json$/, loader: 'json' },
+      { test: /\.gif$/, loader: "url-loader?mimetype=image/gif" }
     ]
   }
 }

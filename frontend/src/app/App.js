@@ -6,6 +6,7 @@ import CenterContent from "./components/CenterContent";
 import ProgressBox from "./components/ProgressBox";
 import SampleDownloadLink from "./toolbar/SampleDownloadLink";
 import { inject, observer } from "mobx-react";
+import introImage from "../assets/intro.gif";
 
 const PORTAL_MIN_WIDTH = 768; // small devices, landscape
 const TIMELINE_HEIGHT = 280;
@@ -69,15 +70,13 @@ class App extends React.Component {
           style={{ flex: 1 }}
         >
           <img
-            src=""
-            className="img-thumbnail mb-4"
-            style={{ width: 480, height: 360 }}
+            src={introImage}
+            className="img-thumbnail mb-5"
+            style={{ width: 640, height: 360 }}
           />
           <p className={paragraphClassName}>
-            This application allows you to search through a large dataset to
-            locate data of interest. Simply upload a CSV file of a predefined
-            format to begin. You can <a href="#">download</a> a random CSV file
-            to try.
+            This application allows you to search through a large dataset to quickly
+            locate data of interest.
           </p>
           <p className={paragraphClassName}>
             Download a <SampleDownloadLink>random CSV</SampleDownloadLink> and
