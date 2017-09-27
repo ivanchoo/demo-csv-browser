@@ -44,7 +44,13 @@ The project will run the following Docker containers:
  - `server`: Runs a python flask server with hot-reload enabled.
  - `database`: Runs a PostgreSQL server. To access the database, use `docker-compose exec database psql -U app`
 
-This will setup a development environment for the current project. To view the project in the browser, you'll need the Docker IP and access it at port `3000`, example `http://[docker-machine-ip]:3000/`
+This will setup a development environment for the current project. To view the project in the browser, you'll need the Docker IP and access it at port `8000`, example `http://[docker-machine-ip]:8000/`
+
+To stop the project, use
+
+```
+$ docker-compose down
+```
 
 ### Design
 
