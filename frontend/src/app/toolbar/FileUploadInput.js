@@ -13,13 +13,30 @@ export default class FileUploadInput extends React.Component {
     if (file) {
       this.props.store.upload(file);
     }
-  }
+  };
   render() {
-    const { children, store, ...restProps } = this.props;
+    const {
+      children,
+      store,
+      disabled,
+      className = "",
+      ...restProps
+    } = this.props;
+
     return (
       <span>
-        <input type="file" ref={ref => (this._input = ref)} hidden onChange={this.onChange}/>
-        <a {...restProps} href="#" onClick={this.onClick}>
+        <input
+          type="file"
+          ref={ref => (this._input = ref)}
+          hidden
+          onChange={this.onChange}
+        />
+        <a
+          {...restProps}
+          href="#"
+          onClick={this.onClick}
+          className={`${className} ${disabled ? "disabled" : ""}`}
+        >
           {children}
         </a>
       </span>

@@ -9,6 +9,19 @@ export default class ChangeLogSelect extends React.Component {
   static propTypes = {
     store: PropTypes.object.isRequired
   };
+  onDelete = evt => {
+    evt.preventDefault();
+    const { store } = this.props;
+    const selectedChangeLog = store.selectedChangeLog;
+    if (!selectedChangeLog) return;
+    const filename = selectedChangeLog.filename || "Current Change Logs";
+    const message = `Do you want to delete '${filename}?
+
+You cannot undo this action.'`;
+    if (window.confirm(message)) {
+      store.remove(selectedChangeLog);
+    }
+  };
   onChange = evt => {
     const { store } = this.props;
     const id = Number(evt.target.value);
@@ -27,31 +40,66 @@ export default class ChangeLogSelect extends React.Component {
     const { uid } = this.state;
     const changeLogs = store.changeLogs;
     const selectedChangeLog = store.selectedChangeLog;
-    const children = changeLogs
-      ? changeLogs.map(changeLog => (
+    const hasSelected = !!selectedChangeLog;
+    const hasChangeLogs = changeLogs && changeLogs.length;
+    const disabled = store.changeLogsAsyncStatus.progress;
+    const labelChildren = [];
+    if (hasChangeLogs) {
+      labelChildren.push(
+        <FileUploadInput key="link-upload" disabled={disabled}>
+          Add <span className="d-none d-lg-inline">New</span>
+        </FileUploadInput>
+      );
+    } else {
+      labelChildren.push("Start Here");
+    }
+
+    if (hasSelected) {
+      labelChildren.push(
+        <span key="link-delete">
+          {" "}
+          or{" "}
+          <a
+            href="#"
+            className={disabled ? "disabled" : ""}
+            onClick={this.onDelete}
+          >
+            Delete <span className="d-none d-lg-inline">This</span>
+          </a>
+        </span>
+      );
+    }
+    const input = hasChangeLogs ? (
+      <select
+        className="form-control"
+        id={uid}
+        value={selectedChangeLog ? selectedChangeLog.id : "0"}
+        onChange={this.onChange}
+        disabled={disabled}
+      >
+        <option disabled value="0">
+          or Select Here
+        </option>
+        {changeLogs.map(changeLog => (
           <option key={changeLog.id} value={changeLog.id}>
             {changeLog.filename}
           </option>
-        ))
-      : null;
+        ))}
+      </select>
+    ) : (
+      <FileUploadInput
+        className="btn btn-primary btn-block"
+        disabled={disabled}
+      >
+        Add Change Log
+      </FileUploadInput>
+    );
     return (
       <div {...restProps}>
         <label htmlFor={uid} className="text-secondary small">
-          <FileUploadInput>Upload New</FileUploadInput>
+          {labelChildren}
         </label>
-        <select
-          className="form-control"
-          id={uid}
-          value={selectedChangeLog ? selectedChangeLog.id : "0"}
-          onChange={this.onChange}
-        >
-          {!selectedChangeLog && (
-            <option disabled value="0">
-              Select:
-            </option>
-          )}
-          {children}
-        </select>
+        {input}
       </div>
     );
   }

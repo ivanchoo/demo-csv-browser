@@ -275,7 +275,7 @@ class TimelineChart extends React.Component {
     const selectedChangeLog = store.selectedChangeLog;
     let children;
     if (selectedChangeLog && !selectedChangeLog.asyncStatus.initialized) {
-      children = <ProgressBox style={{ width: "100%", height: "100%" }} />;
+      children = <ProgressBox className="w-100 h-100" />;
     } else {
       children = hasBounds ? <svg ref={this.svgRef} id={uid} /> : null;
     }

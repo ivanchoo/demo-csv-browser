@@ -15,7 +15,7 @@ const jsonGET = (endpoint, params) => {
     finalEndpoint = endpoint;
   }
   return fetch(finalEndpoint, {
-    method: "GET",
+    method: "GET"
   }).then(response => {
     return response.json();
   });
@@ -44,10 +44,18 @@ export const fetchChangeLogObjectsStats = (id, params) => {
 export const uploadChangeLog = file => {
   invariant(file instanceof File, `Expects 'File' object, but got ${file}`);
   const body = new FormData();
-  body.append('changelog', file);
+  body.append("changelog", file);
   return fetch(`${endpoint}/changelog`, {
     method: "POST",
     body
+  }).then(response => {
+    return response.json();
+  });
+};
+
+export const removeChangeLog = id => {
+  return fetch(`${endpoint}/changelog/${id}`, {
+    method: "DELETE"
   }).then(response => {
     return response.json();
   });

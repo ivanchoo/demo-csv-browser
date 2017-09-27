@@ -55,7 +55,7 @@ export default class Pages extends React.Component {
     ) {
       return (
         <div {...containerProps}>
-          <ProgressBox style={{ width: "100%", height: "100%" }} />
+          <ProgressBox className="w-100 h-100" />
         </div>
       );
     }

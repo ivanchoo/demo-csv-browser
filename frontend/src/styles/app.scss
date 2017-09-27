@@ -1,3 +1,9 @@
+a.disabled {
+  color: $btn-link-disabled-color;
+  pointer-events: none;
+  text-decoration: none !important;
+}
+
 /* See: http://tobiasahlin.com/spinkit/ */
 .spinner {
   width: 70px;

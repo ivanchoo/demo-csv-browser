@@ -4,7 +4,8 @@ import {
   fetchChangeLogStats,
   fetchChangeLogObjects,
   fetchChangeLogObjectsStats,
-  uploadChangeLog
+  uploadChangeLog,
+  removeChangeLog
 } from "./api";
 import { toDate, fromDatetime, toDatetime } from "./utils";
 import invariant from "invariant";
@@ -23,12 +24,6 @@ export class Store {
   @observable changeLogsAsyncStatus = new AsyncStatus();
 
   /**
-   * Async status for `upload` operations.
-   * @type {AsyncStatus}
-   */
-  @observable uploadAsyncStatus = new AsyncStatus();
-
-  /**
    * @type {ChangeLog} `null` denotes no selection.
    */
   @observable selectedChangeLog = null;
@@ -45,8 +40,28 @@ export class Store {
    */
   @action.bound
   select(changeLog) {
-    invariant(changeLog instanceof ChangeLog, "Expects ChangeLog type");
+    if (changeLog) {
+      invariant(changeLog instanceof ChangeLog, "Expects ChangeLog type");      
+    }
     this.selectedChangeLog = changeLog;
+  }
+
+  @action.bound
+  remove(changeLog) {
+    invariant(changeLog instanceof ChangeLog, "Expects ChangeLog type");
+    return this.changeLogsAsyncStatus
+      .withPromise(removeChangeLog(changeLog.id))
+      .then(resp => {
+        runInAction(() => {
+          const index = this.changeLogs.findIndex(cl => cl.id == changeLog.id);
+          invariant(index >= 0, "Expects ChangeLog in `store.changelogs`");
+          this.changeLogs.splice(index, 1);
+          if (this.selectedChangeLog.id == changeLog.id) {
+            this.select(null);
+          }
+        });
+        return resp;
+      });
   }
 
   /**
@@ -59,8 +74,6 @@ export class Store {
       .then(resp => {
         runInAction(() => {
           this.changeLogs = resp.map(ChangeLog.fromObject);
-          // TODO: remove auto select
-          this.selectedChangeLog = this.changeLogs[0];
         });
         return resp;
       });
@@ -72,7 +85,7 @@ export class Store {
    */
   @action.bound
   upload(file) {
-    return this.uploadAsyncStatus
+    return this.changeLogsAsyncStatus
       .withPromise(uploadChangeLog(file))
       .then(resp => {
         runInAction(() => {

@@ -13,7 +13,7 @@ import random
 
 PAGESIZE = 20
 STATSIZE = 50
-LATENCY = 0  # For testing and dev
+LATENCY = 1  # For testing and dev
 
 blueprint = Blueprint('api', __name__)
 
@@ -90,9 +90,25 @@ def changelog_sample():
     return resp
 
 
-@blueprint.route('/changelog/<int:changelog_id>/stats')
+@blueprint.route('/changelog/<int:changelog_id>', methods=['GET', 'DELETE'])
 @login_required
 def changelog(changelog_id):
+    """Returns a changelog object, or delete it"""
+    cl = ChangeLog.query.get(changelog_id)
+    resp = cl.to_dict()
+    if request.method == 'DELETE':
+        try:
+            db.session.delete(cl)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            abort(500)
+    return jsonify(resp)
+
+
+@blueprint.route('/changelog/<int:changelog_id>/stats')
+@login_required
+def changelog_stats(changelog_id):
     """Returns a list of [('YYYY-MM-DD', int)] stats for the
     given `changelog_id`"""
     cl = ChangeLog.query.get(changelog_id)
