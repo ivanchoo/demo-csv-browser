@@ -13,6 +13,7 @@ services:
     volumes:
       # mount local working directory for development
       - ./frontend:/usr/src/app
+      - ./server/app/static/lib:/usr/src/app/build
     working_dir: /usr/src/app
     command: ["bash", "-c", "yarn install && webpack-dev-server"]
 

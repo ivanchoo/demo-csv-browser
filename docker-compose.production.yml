@@ -1,0 +1,29 @@
+# Defines the development configuration for docker-compose.
+version: '2'
+
+services:
+
+  server:
+    env_file: .env.production
+    restart: always
+    build:
+      context: ./server
+      dockerfile: ./Dockerfile.production
+    ports:
+      - "8000:8000"
+    links:
+     - database:database
+    environment:
+      - FLASK_APP=run.py
+
+  database:
+    image: postgres:9.6.3
+    restart: always
+    env_file: .env
+    expose:
+    - "5432"
+    volumes:
+      - datavolume:/var/lib/postgresql/data
+
+volumes:
+  datavolume:

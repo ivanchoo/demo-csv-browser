@@ -23,6 +23,7 @@
     "eslint": "^4.7.2",
     "eslint-plugin-react": "^7.3.0",
     "exports-loader": "^0.6.4",
+    "file-loader": "^0.11.2",
     "imports-loader": "^0.7.1",
     "node-sass": "^4.5.3",
     "postcss-loader": "^2.0.6",

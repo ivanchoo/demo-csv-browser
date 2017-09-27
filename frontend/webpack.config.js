@@ -6,7 +6,7 @@ var isProduction = process.env.NODE_ENV === 'production';
 
 var r = path.resolve;
 var BASE_DIR = r(__dirname);
-var BUILD_DIR = r(BASE_DIR, 'lib');
+var BUILD_DIR = r(BASE_DIR, 'build');
 var SRC_DIR = r(BASE_DIR, 'src');
 
 var entrypoint = function(source) {
@@ -84,7 +84,7 @@ module.exports = {
   module: {
     loaders: [
       { test: /\.(jsx|js)$/, loader: 'babel-loader', include: SRC_DIR },
-      { test: /\.gif$/, loader: "url-loader?mimetype=image/gif" }
+      { test: /\.gif$/, loader: "url-loader?limit=1000&mimetype=image/gif" }
     ]
   }
 }
