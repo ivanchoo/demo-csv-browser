@@ -1,19 +1,37 @@
+/* extends bootstrap styles */
+
+.btn-primary {
+  @extend .text-light;
+}
+
 a.disabled {
   color: $btn-link-disabled-color;
   pointer-events: none;
   text-decoration: none !important;
 }
 
+/* Charting */
+
+.area {
+  fill: $primary-brand;
+}
+
+.zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+
 /* See: http://tobiasahlin.com/spinkit/ */
 .spinner {
-  width: 70px;
+  width: 42px;
   text-align: center;
 }
 
 .spinner > div {
-  width: 18px;
-  height: 18px;
-  background-color: #ddd;
+  width: 12px;
+  height: 12px;
+  background-color: $primary-brand;
 
   border-radius: 100%;
   display: inline-block;

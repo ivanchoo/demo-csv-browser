@@ -15,6 +15,10 @@ import { toDate, fromDate, randomId } from "./utils";
 import { reaction } from "mobx";
 import { inject, observer } from "mobx-react";
 
+/**
+ * Adapted from Mike Bostock's Brush & Zoom.
+ * https://bl.ocks.org/mbostock/34f08d5e11952a80609169b7917d4172
+ */
 class TimelineChart extends React.Component {
   static propTypes = {
     store: PropTypes.object.isRequired,
@@ -116,6 +120,8 @@ class TimelineChart extends React.Component {
     ) {
       return;
     }
+    const { uid } = this.state;
+    const clipId = `clip-${uid}`;
     const data = selectedChangeLog.stats;
     const { bounds } = this.props.contentRect;
     // Don't draw without bounds or too short
@@ -172,7 +178,7 @@ class TimelineChart extends React.Component {
     this._svg
       .append("defs")
       .append("clipPath")
-      .attr("id", "clip")
+      .attr("id", clipId)
       .append("rect")
       .attr("width", width)
       .attr("height", height);
@@ -193,7 +199,7 @@ class TimelineChart extends React.Component {
       .append("path")
       .datum(data)
       .attr("class", "area")
-      .attr("style", "fill: steelblue;clip-path: url(#clip);")
+      .attr("style", `clip-path: url(#${clipId});`)
       .attr("d", this._area);
     this._focus
       .append("g")
@@ -209,7 +215,7 @@ class TimelineChart extends React.Component {
       .append("path")
       .datum(data)
       .attr("class", "area")
-      .attr("style", "fill: steelblue;clip-path: url(#clip);")
+      .attr("style", `clip-path: url(#${clipId});`)
       .attr("d", this._area2);
     this._context
       .append("g")

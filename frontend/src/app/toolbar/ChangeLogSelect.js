@@ -91,7 +91,7 @@ You cannot undo this action.'`;
         className="btn btn-primary btn-block"
         disabled={disabled}
       >
-        Add Change Log
+        Add <span className="d-none d-lg-inline">Log File</span>
       </FileUploadInput>
     );
     return (
