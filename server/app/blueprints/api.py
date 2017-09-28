@@ -81,7 +81,7 @@ def changelog_upload():
 @login_required
 def changelog_sample():
     """Downloads a sample changelog file with random data."""
-    rows = random.randint(300, 30000)
+    rows = random.randint(300, 15000)
     filename = 'sample-{}-rows.csv'.format(rows)
     stream = _stream_csv(create_samples(rows), create_headers())
     resp = Response(stream, mimetype='text/csv')
