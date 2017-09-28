@@ -2,11 +2,11 @@
 
 ![Preview](https://raw.githubusercontent.com/ivanchoo/demo-csv-browser/master/frontend/src/assets/intro.gif)
 
-A web application that loads a CSV and enables searching through a large dataset to quickly locate data of interest. Build with React ⚛ & Python 🐍..
+A web application that loads a CSV and enables searching through a large dataset to quickly locate data of interest. Build with React ⚛ & Python 🐍.
 
 ### Goal
 
-This project is build an web application that:
+This project is to build an web application that:
 
  - Accepts a CSV file of a predefined format (presumably log entries for tracking object changes)
  - Allow users to query the dataset for the state of objects
@@ -15,7 +15,7 @@ This project is build an web application that:
 
 ### Instructions
 
-The best way to run this project locally using Docker.
+The easiest way to run this project is to start it locally using Docker.
 
 Install and start Docker via command line.
 
@@ -38,13 +38,13 @@ $ docker-compose build
 $ docker-compose up -d
 ```
 
-The project will run the following Docker containers:
+The project will run the following containers:
 
- - `frontend`: Runs a webpack dev server with hot-reload enabled.
- - `server`: Runs a python flask server with hot-reload enabled.
+ - `frontend`: Runs a webpack dev server with hot-reload enabled
+ - `server`: Runs a python flask server with hot-reload enabled
  - `database`: Runs a PostgreSQL server. To access the database, use `docker-compose exec database psql -U app`
 
-This will setup a development environment for the current project. To view the project in the browser, you'll need the Docker IP and access it at port `8000`, example `http://[docker-machine-ip]:8000/`
+This will setup a development environment for the project locally. To view the project in the browser, you'll need the Docker IP and access it at port `8000`, example `http://[docker-machine-ip]:8000/`
 
 To stop the project, use
 
@@ -54,7 +54,7 @@ $ docker-compose down
 
 ### Design
 
-Several design considerations are taken into account when designing this app.
+Several design considerations are taken into account:
 
  - Users typically have no visibility to the time period of events within the log (CSV) file. Providing this information can quickly enable users to narrow the scope of search
  - Users will begin the search process without knowledge of the specific time the event occurred. They usually have a broad range in mind (e.g. happened last quarter, last 1/2 year)
@@ -62,4 +62,4 @@ Several design considerations are taken into account when designing this app.
 
 ### Others
 
-Please use issues for suggestions and bug reports.
+This project was developed under time constrain, and is not bug-free and requires much UI polish. Please use issues for suggestions and bug reports.
