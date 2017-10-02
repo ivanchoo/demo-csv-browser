@@ -30,7 +30,9 @@ class TimelineChart extends React.Component {
     super(props);
     this.state = { uid: randomId("timeline-svg") };
   }
-  svgRef = ref => (this._svg = select(ref));
+  svgRef = ref => {
+    this._svg = ref ? select(ref) : null;
+  };
   brushed = () => {
     if (event.sourceEvent && event.sourceEvent.type === "zoom") {
       // Ignore brush by zoom
@@ -99,7 +101,11 @@ class TimelineChart extends React.Component {
       to = this._x2.domain()[1];
     }
     const [xFrom, xTo] = this._x.domain();
-    if (forceDraw || fromDate(from) != fromDate(xFrom) || fromDate(to) != fromDate(xTo)) {
+    if (
+      forceDraw ||
+      fromDate(from) != fromDate(xFrom) ||
+      fromDate(to) != fromDate(xTo)
+    ) {
       const x = this._x2(from),
         y = this._x2(to);
       this._context.select(".brush").call(this._brush.move, [x, y]);
