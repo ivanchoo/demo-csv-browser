@@ -3,6 +3,7 @@ from app import create_app
 from app.models import db
 from sqlalchemy import MetaData
 
+
 @click.group(chain=True)
 @click.pass_context
 def cli(ctx):
@@ -12,7 +13,8 @@ def cli(ctx):
 @cli.command()
 def initdb():
     """Initialize database."""
-    click.echo('Preparing recreate the database, all existing data will be lost.')
+    click.echo(
+        'Preparing recreate the database, all existing data will be lost.')
     if not click.confirm('Do you want to continue?'):
         return
     app = create_app()

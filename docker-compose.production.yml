@@ -19,7 +19,7 @@ services:
   database:
     image: postgres:9.6.3
     restart: always
-    env_file: .env
+    env_file: .env.production
     expose:
     - "5432"
     volumes:
